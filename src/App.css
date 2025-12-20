@@ -1,4 +1,4 @@
-/* App Layout */
+/* App Layout - macOS 26 Tahoe */
 .app {
   display: flex;
   flex-direction: column;
@@ -15,14 +15,16 @@
 .app-content {
   flex: 1;
   padding: var(--space-6);
+  background: var(--bg-content);
   overflow-y: auto;
 }
 
 .app-sidebar-right {
-  width: 340px;
-  background: rgba(12, 12, 18, 0.6);
-  backdrop-filter: blur(16px);
-  border-left: 1px solid var(--color-border-subtle);
+  width: 320px;
+  padding: var(--space-5);
+  background: var(--bg-sidebar);
+  backdrop-filter: var(--glass-sidebar);
+  border-left: 0.5px solid var(--border-separator);
   overflow-y: auto;
 }
 
@@ -31,11 +33,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-6);
-  background: rgba(239, 68, 68, 0.1);
-  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--color-accent-danger);
-  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(255, 69, 58, 0.12);
+  border-bottom: 0.5px solid rgba(255, 69, 58, 0.30);
+  color: var(--accent-red);
+  font-size: var(--text-body);
   cursor: pointer;
 }
 
@@ -49,7 +51,7 @@
   padding: var(--space-1);
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .error-dismiss:hover {

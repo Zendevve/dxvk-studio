@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "name": "macOS 26 Tahoe Design System",
+    "version": "1.0.0",
+    "source": "macOS 26 (Community) Figma Kit",
+    "mode": "dark"
+  },
+  "foundations": {
+    "colors": {
+      "backgrounds": {
+        "window": "rgba(30, 30, 32, 0.78)",
+        "windowSolid": "#1E1E20",
+        "titlebar": "rgba(38, 38, 40, 0.95)",
+        "sidebar": "rgba(28, 28, 30, 0.85)",
+        "content": "#232325",
+        "elevated": "#2C2C2E",
+        "modal": "rgba(44, 44, 46, 0.95)"
+      },
+      "fills": {
+        "primary": "rgba(255, 255, 255, 0.10)",
+        "secondary": "rgba(255, 255, 255, 0.06)",
+        "tertiary": "rgba(255, 255, 255, 0.04)"
+      },
+      "labels": {
+        "primary": "#FFFFFF",
+        "secondary": "rgba(255, 255, 255, 0.55)",
+        "tertiary": "rgba(255, 255, 255, 0.25)"
+      },
+      "accents": {
+        "blue": "#007AFF",
+        "green": "#30D158",
+        "red": "#FF453A",
+        "orange": "#FF9F0A"
+      },
+      "borders": {
+        "glass": "rgba(255, 255, 255, 0.18)",
+        "separator": "rgba(255, 255, 255, 0.08)",
+        "opaque": "rgba(255, 255, 255, 0.12)"
+      }
+    }
+  },
+  "rules": {
+    "DO_NOT": [
+      "DO NOT apply gradients to buttons - macOS 26 uses flat accent colors",
+      "DO NOT use bright colors for window backgrounds",
+      "DO NOT use colored borders - borders are always white with low opacity"
+    ],
+    "ALWAYS": [
+      "ALWAYS use rgba for backgrounds to enable layering",
+      "ALWAYS apply backdrop-filter WITH blur AND saturate together",
+      "ALWAYS use 0.5px borders (hairline) for subtle separators",
+      "ALWAYS maintain 44px minimum touch targets",
+      "ALWAYS use SF Pro system font stack"
+    ]
+  }
+}

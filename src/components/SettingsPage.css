@@ -1,3 +1,4 @@
+/* Settings Page - macOS 26 Tahoe */
 .settings-page {
   display: flex;
   flex-direction: column;
@@ -5,32 +6,30 @@
 }
 
 .settings-page h2 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-title2);
+  font-weight: var(--weight-semibold);
+  color: var(--label-primary);
   margin-bottom: var(--space-2);
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  background: rgba(12, 12, 18, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--color-border-subtle);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-list-group);
+  backdrop-filter: var(--glass-panel);
+  border: 0.5px solid var(--border-opaque);
   border-radius: var(--radius-lg);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
 }
 
 .settings-section h3 {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-accent-primary);
+  letter-spacing: 0.3px;
+  color: var(--label-tertiary);
   margin: 0;
 }
 
@@ -39,126 +38,82 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-bottom: 0.5px solid var(--border-separator);
+}
+
+.settings-item:last-child {
+  border-bottom: none;
 }
 
 .settings-item-label {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .settings-item-label span:first-child {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  color: var(--label-primary);
 }
 
 .settings-item-label span:last-child {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font-size: var(--text-subheadline);
+  color: var(--label-tertiary);
 }
 
 .settings-path {
   flex: 1;
-  padding: var(--space-3);
-  background: rgba(139, 92, 246, 0.05);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  background: var(--fill-tertiary);
+  border: 0.5px solid var(--border-separator);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  font-size: var(--text-footnote);
+  color: var(--label-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .settings-select {
-  min-width: 150px;
-  padding: var(--space-2) var(--space-3);
-  background: rgba(12, 12, 18, 0.8);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  min-width: 140px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  background: var(--fill-secondary);
+  border: 0.5px solid var(--border-opaque);
+  border-radius: var(--radius-sm);
+  color: var(--label-primary);
+  font-size: var(--text-body);
+  font-family: var(--font-system);
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .settings-select:focus {
   outline: none;
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-}
-
-/* Toggle Switch */
-.toggle {
-  position: relative;
-  width: 48px;
-  height: 26px;
-}
-
-.toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  height: 20px;
-  width: 20px;
-  left: 2px;
-  top: 2px;
-  background: var(--color-text-tertiary);
-  border-radius: 50%;
-  transition: all var(--transition-fast);
-}
-
-.toggle input:checked+.toggle-slider {
-  background: var(--gradient-button);
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-}
-
-.toggle input:checked+.toggle-slider::before {
-  transform: translateX(22px);
-  background: white;
+  border-color: rgba(0, 122, 255, 0.60);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
 }
 
 /* About Card */
 .about-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  background: var(--gradient-card);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--color-border-subtle);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-list-group);
+  backdrop-filter: var(--glass-panel);
+  border: 0.5px solid var(--border-opaque);
   border-radius: var(--radius-lg);
   text-align: center;
 }
 
 .about-card h3 {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: var(--text-title3);
+  font-weight: var(--weight-semibold);
+  color: var(--label-primary);
 }
 
 .about-links {
@@ -171,18 +126,16 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--fill-primary);
+  border: 0.5px solid var(--border-opaque);
   border-radius: var(--radius-md);
-  color: var(--color-accent-primary);
-  font-size: var(--font-size-sm);
+  color: var(--accent-blue);
+  font-size: var(--text-body);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .about-links a:hover {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.4);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+  background: var(--fill-secondary);
 }

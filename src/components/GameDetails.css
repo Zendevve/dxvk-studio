@@ -1,11 +1,9 @@
+/* Game Details - macOS 26 Tahoe */
 .game-details {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  padding: var(--space-6);
   height: 100%;
-  background: rgba(12, 12, 18, 0.6);
-  backdrop-filter: blur(16px);
 }
 
 .game-details-header {
@@ -16,73 +14,63 @@
 }
 
 .game-details-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-title2);
+  font-weight: var(--weight-semibold);
+  color: var(--label-primary);
   margin: 0;
-  line-height: var(--line-height-tight);
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .btn-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   padding: 0;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--label-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .btn-icon:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.3);
-  color: var(--color-text-primary);
+  background: var(--fill-primary);
+  color: var(--label-primary);
 }
 
-.btn-icon:focus-visible {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 2px;
-}
-
+/* Detail Tabs */
 .detail-tabs {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-1);
-  background: rgba(139, 92, 246, 0.05);
+  gap: 1px;
+  padding: 1px;
+  background: var(--fill-tertiary);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-subtle);
 }
 
 .detail-tab {
   flex: 1;
-  padding: var(--space-2) var(--space-4);
+  height: 28px;
+  padding: 0 var(--space-3);
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  color: var(--label-secondary);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .detail-tab:hover {
-  color: var(--color-text-primary);
+  color: var(--label-primary);
 }
 
 .detail-tab.active {
-  background: var(--gradient-button);
-  color: white;
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  background: var(--accent-blue);
+  color: #FFFFFF;
 }
 
 .game-details-section {
@@ -92,10 +80,11 @@
 }
 
 .game-details-section h3 {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.3px;
+  color: var(--label-tertiary);
 }
 
 .badge-group {
@@ -108,8 +97,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  color: var(--label-secondary);
 }
 
 .storefront-icon {
@@ -117,22 +106,23 @@
 }
 
 .game-path {
-  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-footnote);
   word-break: break-all;
-  padding: var(--space-3);
-  background: rgba(139, 92, 246, 0.05);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  display: block;
+  padding: var(--space-2);
+  background: var(--fill-tertiary);
+  border: 0.5px solid var(--border-separator);
+  border-radius: var(--radius-sm);
+  color: var(--label-secondary);
 }
 
 .game-details-actions {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin-top: auto;
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-4);
+  border-top: 0.5px solid var(--border-separator);
 }
 
 .install-section {
@@ -142,11 +132,11 @@
 }
 
 .install-section h3 {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.3px;
+  color: var(--label-tertiary);
 }
 
 .version-buttons {
@@ -158,19 +148,13 @@
 .no-versions {
   text-align: center;
   padding: var(--space-4);
-  background: rgba(139, 92, 246, 0.05);
-  border: 1px dashed var(--color-border-default);
+  background: var(--fill-tertiary);
+  border: 0.5px dashed var(--border-opaque);
   border-radius: var(--radius-md);
 }
 
 .no-versions p {
   margin: var(--space-1) 0;
-}
-
-.text-warning {
-  display: flex;
-  align-items: center;
-  color: var(--color-accent-warning);
-  font-size: var(--font-size-xs);
-  margin-top: var(--space-2);
+  font-size: var(--text-callout);
+  color: var(--label-secondary);
 }
