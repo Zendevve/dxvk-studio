@@ -38,10 +38,10 @@ Build the **definitive open-source DXVK management suite** for Windows that:
 
 | Task | Status | Feature Doc |
 |------|--------|-------------|
-| Steam library scanner (`libraryfolders.vdf`) | 🔲 Pending | `docs/Features/steam-scanner.md` |
-| Epic Games Store integration | 🔲 Pending | `docs/Features/epic-scanner.md` |
-| GOG Galaxy integration | 🔲 Pending | `docs/Features/gog-scanner.md` |
-| Manual game directory support | 🔲 Pending | `docs/Features/manual-add.md` |
+| Steam library scanner (`libraryfolders.vdf`) | ✅ Complete | `library-scanner.ts` |
+| Epic Games Store integration | 🔲 Deferred | Post-MVP |
+| GOG Galaxy integration | 🔲 Deferred | Post-MVP |
+| Manual game directory support | ✅ Complete | Add Game Modal |
 
 ---
 
