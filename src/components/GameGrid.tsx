@@ -5,9 +5,10 @@ interface GameGridProps {
   games: Game[]
   selectedGame: Game | null
   onSelectGame: (game: Game) => void
+  onAddGame: () => void
 }
 
-export function GameGrid({ games, selectedGame, onSelectGame }: GameGridProps) {
+export function GameGrid({ games, selectedGame, onSelectGame, onAddGame }: GameGridProps) {
   if (games.length === 0) {
     return (
       <div className="game-grid-empty">
@@ -20,8 +21,11 @@ export function GameGrid({ games, selectedGame, onSelectGame }: GameGridProps) {
           </svg>
           <h2>No Games Found</h2>
           <p className="text-secondary">
-            Click "Scan Library" to detect games, or add a game manually.
+            Click "Scan Steam" to detect games, or add a game manually.
           </p>
+          <button className="btn btn-primary" onClick={onAddGame}>
+            Add Game Manually
+          </button>
         </div>
       </div>
     )

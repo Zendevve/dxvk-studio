@@ -5,6 +5,7 @@ type View = 'library' | 'settings' | 'downloads'
 interface SidebarProps {
   currentView: View
   onViewChange: (view: View) => void
+  installedVersions: number
 }
 
 const navItems: { id: View; label: string; icon: JSX.Element }[] = [
@@ -43,7 +44,7 @@ const navItems: { id: View; label: string; icon: JSX.Element }[] = [
   }
 ]
 
-export function Sidebar({ currentView, onViewChange }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, installedVersions }: SidebarProps) {
   return (
     <nav className="sidebar">
       <ul className="sidebar-nav">
@@ -63,8 +64,8 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
 
       <div className="sidebar-footer">
         <div className="sidebar-version">
-          <span className="text-tertiary">DXVK Status</span>
-          <span className="badge badge-success">v2.3 Ready</span>
+          <span className="text-tertiary">DXVK Versions</span>
+          <span className="badge badge-success">{installedVersions} installed</span>
         </div>
       </div>
     </nav>

@@ -10,8 +10,8 @@ const electronAPI = {
   getGames: () => ipcRenderer.invoke('get-games'),
 
   // DXVK Management
-  installDxvk: (gamePath: string, variant: string) =>
-    ipcRenderer.invoke('install-dxvk', gamePath, variant),
+  installDxvk: (gamePath: string, exePath: string, versionPath: string) =>
+    ipcRenderer.invoke('install-dxvk', gamePath, exePath, versionPath),
   removeDxvk: (gamePath: string) =>
     ipcRenderer.invoke('remove-dxvk', gamePath),
   getDxvkStatus: (gamePath: string) =>
@@ -24,21 +24,32 @@ const electronAPI = {
     ipcRenderer.invoke('save-config', gamePath, config),
 
   // Version Management
-  downloadDxvk: (version: string) =>
-    ipcRenderer.invoke('download-dxvk', version),
-  getAvailableVersions: () =>
-    ipcRenderer.invoke('get-available-versions'),
+  downloadDxvk: (version: string, variant: string) =>
+    ipcRenderer.invoke('download-dxvk', version, variant),
+  getAvailableVersions: (variant?: string) =>
+    ipcRenderer.invoke('get-available-versions', variant),
   getInstalledVersions: () =>
     ipcRenderer.invoke('get-installed-versions'),
+  getVersionsDir: () =>
+    ipcRenderer.invoke('get-versions-dir'),
 
   // PE Analysis
   analyzeExecutable: (exePath: string) =>
     ipcRenderer.invoke('analyze-executable', exePath),
 
+  // Dialogs
+  selectDirectory: () =>
+    ipcRenderer.invoke('select-directory'),
+  selectExecutable: () =>
+    ipcRenderer.invoke('select-executable'),
+
   // Events
   onProgress: (callback: (progress: number) => void) => {
-    ipcRenderer.on('progress', (_event, progress) => callback(progress))
-    return () => ipcRenderer.removeAllListeners('progress')
+    const handler = (_event: any, progress: number) => callback(progress)
+    ipcRenderer.on('progress', handler)
+    return () => {
+      ipcRenderer.removeListener('progress', handler)
+    }
   }
 }
 

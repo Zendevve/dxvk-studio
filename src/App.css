@@ -66,3 +66,29 @@
   margin-top: auto;
   padding-top: var(--space-6);
 }
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6);
+  background: rgba(239, 68, 68, 0.15);
+  border-bottom: 1px solid var(--color-accent-danger);
+  color: var(--color-accent-danger);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: var(--space-1);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.error-dismiss:hover {
+  opacity: 1;
+}

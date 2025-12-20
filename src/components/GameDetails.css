@@ -1,0 +1,95 @@
+.game-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.game-details-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.game-details-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.game-details-section h3 {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.storefront-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.storefront-icon {
+  opacity: 0.7;
+}
+
+.game-path {
+  font-size: var(--font-size-xs);
+  word-break: break-all;
+  padding: var(--space-3);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.game-details-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.install-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.install-section h3 {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.version-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.no-versions {
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.no-versions p {
+  margin: var(--space-1) 0;
+}
+
+.text-warning {
+  color: var(--color-accent-warning);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-2);
+}
