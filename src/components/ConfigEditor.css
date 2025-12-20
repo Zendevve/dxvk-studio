@@ -19,6 +19,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-4);
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .config-section h3 {
@@ -26,7 +30,7 @@
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
+  color: var(--color-accent-primary);
   margin: 0;
 }
 
@@ -50,18 +54,19 @@
 .config-row select {
   width: 120px;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-tertiary);
+  background: rgba(12, 12, 18, 0.8);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
 }
 
 .config-row input[type="number"]:focus,
 .config-row select:focus {
   outline: none;
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 20px rgba(139, 92, 246, 0.1);
 }
 
 .config-row input[type="checkbox"] {
@@ -78,6 +83,12 @@
   flex-wrap: wrap;
 }
 
+.preset-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 /* HUD Grid */
 .hud-grid {
   display: grid;
@@ -90,15 +101,17 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2);
-  background: var(--color-bg-tertiary);
+  background: rgba(12, 12, 18, 0.6);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .hud-option:hover {
-  background: var(--color-bg-secondary);
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
 }
 
 /* Actions */
@@ -112,36 +125,4 @@
 .text-danger {
   color: var(--color-accent-danger);
   font-size: var(--font-size-sm);
-}
-
-/* Detail Tabs */
-.detail-tabs {
-  display: flex;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  background: var(--color-bg-tertiary);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-4);
-}
-
-.detail-tab {
-  flex: 1;
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.detail-tab:hover {
-  color: var(--color-text-primary);
-}
-
-.detail-tab.active {
-  background: var(--color-accent-primary);
-  color: white;
 }

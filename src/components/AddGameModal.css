@@ -1,23 +1,46 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(5, 5, 8, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: var(--z-modal);
-  animation: fadeIn var(--transition-fast) ease-out;
+  animation: fadeIn 0.2s ease;
 }
 
 .modal {
-  width: 90%;
+  width: 100%;
   max-width: 480px;
-  background: var(--color-bg-secondary);
+  background: rgba(12, 12, 18, 0.95);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  animation: slideUp var(--transition-normal) ease-out;
+  box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+  animation: modalSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlide {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modal-header {
@@ -31,39 +54,51 @@
 .modal-header h2 {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .modal-close {
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
   background: transparent;
-  border: none;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-lg);
-  cursor: pointer;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .modal-close:hover {
-  background: var(--color-bg-tertiary);
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
   color: var(--color-text-primary);
 }
 
 .modal-body {
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .modal-body p {
-  margin-bottom: var(--space-6);
-  line-height: var(--line-height-relaxed);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .modal-actions {
   display: flex;
-  flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.modal-actions .btn {
+  flex: 1;
 }

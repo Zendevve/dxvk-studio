@@ -8,13 +8,18 @@
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   margin-bottom: var(--space-2);
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .variant-tabs {
   display: flex;
   gap: var(--space-2);
   padding: var(--space-1);
-  background: var(--color-bg-secondary);
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   width: fit-content;
 }
@@ -33,12 +38,13 @@
 
 .variant-tab:hover {
   color: var(--color-text-primary);
-  background: var(--color-bg-tertiary);
+  background: rgba(139, 92, 246, 0.1);
 }
 
 .variant-tab.active {
-  background: var(--color-accent-primary);
+  background: var(--gradient-button);
   color: white;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
 }
 
 .error-message {
@@ -46,8 +52,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid var(--color-accent-danger);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: var(--radius-md);
   color: var(--color-accent-danger);
   font-size: var(--font-size-sm);
@@ -69,14 +75,15 @@
 
 .progress-bar {
   height: 8px;
-  background: var(--color-bg-tertiary);
+  background: rgba(139, 92, 246, 0.1);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-primary-hover));
+  background: var(--gradient-button);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   transition: width 0.3s ease;
 }
 
@@ -111,7 +118,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-secondary);
+  background: rgba(12, 12, 18, 0.6);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
@@ -119,22 +127,17 @@
 
 .version-item:hover {
   border-color: var(--color-border-default);
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .version-item.installed {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .version-name {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-}
-
-.btn-sm {
-  padding: var(--space-2) var(--space-3);
-  min-height: 32px;
-  font-size: var(--font-size-xs);
 }
 
 .loading-state {

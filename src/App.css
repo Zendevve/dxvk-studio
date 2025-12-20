@@ -19,52 +19,11 @@
 }
 
 .app-sidebar-right {
-  width: 320px;
-  padding: var(--space-6);
-  background: var(--color-bg-secondary);
+  width: 340px;
+  background: rgba(12, 12, 18, 0.6);
+  backdrop-filter: blur(16px);
   border-left: 1px solid var(--color-border-subtle);
   overflow-y: auto;
-}
-
-/* Game Details */
-.game-details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.game-details-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-}
-
-.game-details-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.game-details-section h3 {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.game-path {
-  font-size: var(--font-size-xs);
-  word-break: break-all;
-  padding: var(--space-3);
-  background: var(--color-bg-tertiary);
-  border-radius: var(--radius-md);
-}
-
-.game-details-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: auto;
-  padding-top: var(--space-6);
 }
 
 /* Error Banner */
@@ -73,20 +32,24 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-6);
-  background: rgba(239, 68, 68, 0.15);
-  border-bottom: 1px solid var(--color-accent-danger);
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--color-accent-danger);
   font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
 .error-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: inherit;
   padding: var(--space-1);
   cursor: pointer;
   opacity: 0.7;
+  transition: opacity var(--transition-fast);
 }
 
 .error-dismiss:hover {

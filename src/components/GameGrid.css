@@ -21,14 +21,15 @@
   gap: var(--space-3);
 }
 
-/* Game Card - Fitts's Law: Large clickable area */
+/* Game Card - Web3 Glassmorphism */
 .game-card {
   display: flex;
   align-items: center;
   gap: var(--space-4);
   width: 100%;
   padding: var(--space-4) var(--space-5);
-  background: var(--color-bg-secondary);
+  background: rgba(12, 12, 18, 0.6);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -38,13 +39,14 @@
 
 .game-card:hover {
   border-color: var(--color-border-default);
-  background: var(--color-bg-tertiary);
+  background: rgba(139, 92, 246, 0.08);
+  transform: translateY(-2px);
 }
 
 .game-card.selected {
   border-color: var(--color-accent-primary);
-  background: rgba(99, 102, 241, 0.08);
-  box-shadow: var(--shadow-glow);
+  background: rgba(139, 92, 246, 0.12);
+  box-shadow: var(--shadow-glow-primary), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
 }
 
 .game-card-icon {
@@ -53,15 +55,23 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: var(--color-bg-tertiary);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.game-card:hover .game-card-icon {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--color-accent-primary);
 }
 
 .game-card.selected .game-card-icon {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(139, 92, 246, 0.2);
   color: var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
 }
 
 .game-card-content {
@@ -90,7 +100,8 @@
 .game-card-arch,
 .game-card-dx {
   padding: 2px 6px;
-  background: var(--color-bg-elevated);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: var(--radius-sm);
 }
 
@@ -116,8 +127,9 @@
 }
 
 .empty-icon {
-  color: var(--color-text-tertiary);
-  opacity: 0.5;
+  color: var(--color-accent-primary);
+  opacity: 0.3;
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
 }
 
 .empty-state h2 {
