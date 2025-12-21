@@ -49,7 +49,7 @@ function App() {
     setIsScanning(true)
     try {
       const scannedGames = await window.electronAPI.scanSteamLibrary()
-      setGames(scannedGames.map((g, i) => ({
+      setGames(scannedGames.map((g: Partial<Game>, i: number) => ({
         id: g.id || `game-${i}`,
         name: g.name || 'Unknown Game',
         path: g.path || '',
@@ -847,7 +847,7 @@ function GameDetailView({
       setIsLoadingEngines(true)
       try {
         const engines = await window.electronAPI.getAvailableEngines(selectedFork)
-        setAvailableEngines(engines.map(e => ({
+        setAvailableEngines(engines.map((e: { version: string; cached: boolean; downloadUrl: string }) => ({
           version: e.version,
           cached: e.cached,
           downloadUrl: e.downloadUrl
