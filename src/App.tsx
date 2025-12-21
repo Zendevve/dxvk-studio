@@ -14,10 +14,15 @@ export interface Game {
   path: string
   exePath: string | null
   iconUrl: string | null
+  coverUrl: string | null      // Steam CDN cover art or generated placeholder
+  playtime: number             // Minutes played (placeholder for future)
+  lastPlayed: string | null    // ISO date string of last session
+  isFavorite: boolean          // User-marked favorite
   architecture: 'x86' | 'x64' | 'unknown'
   dxVersion: 8 | 9 | 10 | 11 | null
   dxvkInstalled: boolean
   dxvkVersion: string | null
+  hasUpdate: boolean           // DXVK update available
   storefront: 'steam' | 'epic' | 'gog' | 'manual'
 }
 
@@ -181,10 +186,15 @@ function App() {
         path: gamePath,
         exePath,
         iconUrl,
+        coverUrl: null,         // Manual games get gradient placeholder
+        playtime: 0,
+        lastPlayed: null,
+        isFavorite: false,
         architecture: analysis.architecture || 'unknown',
         dxVersion: analysis.dxVersion || null,
         dxvkInstalled: false,
         dxvkVersion: null,
+        hasUpdate: false,
         storefront: 'manual'
       }
 
@@ -215,68 +225,78 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <Header
-        onScan={handleScanLibrary}
-        onAddGame={() => setShowAddGame(true)}
-        isLoading={isLoading}
-        gameCount={games.length}
+    <div className="font-display bg-background-dark text-slate-100 antialiased h-screen overflow-hidden flex relative">
+      {/* Ambient Background Glows */}
+      <div className="ambient-glow" />
+      <div className="ambient-glow-2" />
+
+      {/* Sidebar */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        installedVersions={installedVersions.length}
       />
 
-      {error && (
-        <div className="error-banner" onClick={() => setError(null)}>
-          <span>{error}</span>
-          <button className="error-dismiss" aria-label="Dismiss error">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full relative z-10 overflow-hidden">
+        {currentView === 'library' && (
+          <>
+            <Header
+              onScan={handleScanLibrary}
+              onAddGame={() => setShowAddGame(true)}
+              isLoading={isLoading}
+              gameCount={games.length}
+              installedCount={games.filter(g => g.dxvkInstalled).length}
+              updateCount={games.filter(g => g.hasUpdate).length}
+            />
 
-      <div className="app-main">
-        <Sidebar
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          installedVersions={installedVersions.length}
-        />
+            {error && (
+              <div className="flex items-center justify-between gap-3 px-4 py-2 bg-red-500/10 text-red-400 text-sm animate-pulse" onClick={() => setError(null)}>
+                <span>{error}</span>
+                <button className="flex items-center justify-center size-5 opacity-70 hover:opacity-100 transition-opacity" aria-label="Dismiss error">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
-        <main className="app-content">
-          {currentView === 'library' && (
             <GameGrid
               games={games}
               selectedGame={selectedGame}
               onSelectGame={setSelectedGame}
               onAddGame={() => setShowAddGame(true)}
+              onScanGames={handleScanLibrary}
             />
-          )}
-
-          {currentView === 'settings' && (
-            <SettingsPage />
-          )}
-
-          {currentView === 'downloads' && (
-            <VersionManager
-              installedVersions={installedVersions}
-              onRefresh={loadInstalledVersions}
-            />
-          )}
-        </main>
-
-        {selectedGame && (
-          <aside className="app-sidebar-right">
-            <GameDetails
-              game={selectedGame}
-              installedVersions={installedVersions}
-              onInstall={handleInstallDxvk}
-              onRemove={handleRemoveDxvk}
-              onClose={handleCloseDetails}
-              onDelete={() => handleDeleteGame(selectedGame.id)}
-              isLoading={isLoading}
-            />
-          </aside>
+          </>
         )}
-      </div>
+
+        {currentView === 'settings' && (
+          <SettingsPage />
+        )}
+
+        {currentView === 'downloads' && (
+          <VersionManager
+            installedVersions={installedVersions}
+            onRefresh={loadInstalledVersions}
+          />
+        )}
+      </main>
+
+      {/* Right Sidebar - Game Details */}
+      {selectedGame && (
+        <aside className="w-80 p-4 bg-glass-bg backdrop-blur-2xl border-l border-glass-border overflow-y-auto">
+          <GameDetails
+            game={selectedGame}
+            installedVersions={installedVersions}
+            onInstall={handleInstallDxvk}
+            onRemove={handleRemoveDxvk}
+            onClose={handleCloseDetails}
+            onDelete={() => handleDeleteGame(selectedGame.id)}
+            isLoading={isLoading}
+          />
+        </aside>
+      )}
 
       {showAddGame && (
         <AddGameModal

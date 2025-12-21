@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DXVK Studio - Game Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#007bff",
+              "background-light": "#f5f7f8",
+              "background-dark": "#0f1115",
+              "glass-border": "rgba(255, 255, 255, 0.08)",
+              "glass-bg": "rgba(30, 35, 45, 0.4)",
+              "glass-highlight": "rgba(255, 255, 255, 0.05)",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+            backdropBlur: {
+              xs: '2px',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Glassmorphism utilities */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(0, 123, 255, 0.15);
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0,123,255,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: -100px;
+            left: -100px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ambient-glow-2 {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(100, 50, 255, 0.08) 0%, rgba(0,0,0,0) 70%);
+            bottom: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased selection:bg-primary selection:text-white h-screen overflow-hidden flex">
+<!-- Ambient Background Effects -->
+<div class="ambient-glow"></div>
+<div class="ambient-glow-2"></div>
+<!-- Sidebar -->
+<aside class="glass-panel w-[280px] h-full flex flex-col z-20 shrink-0 relative border-r border-r-white/5">
+<div class="p-6 pb-2">
+<div class="flex items-center gap-4 mb-8">
+<div class="bg-center bg-no-repeat bg-cover rounded-xl size-12 shadow-inner ring-1 ring-white/10" data-alt="Abstract geometric logo in blue and purple gradients" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB-qfbgphQvLuUcNev3xqWoKM0ehQD7Ty1FlXae6fg3zqAFqM855-nhb2thEgF6EBIJTZtIgKG2qeNQC7XuTUiMcNNNjSBy08hMxkvV7F2XgDHBCdUDkwqFd-AHGzC9D9Q1eg_O1mGm7bLlmJ19hqgoXeQz71TLpebbyEccz1sB5WHG3W1i5-RTir-sXHiQTXorNxPeZ2EbTKbtl5F-rRfSXOQsc96WRBeDJFsGWX2jy6KWnVVd1JrjkW2lQM3HTFB3h-dqjZb2yw");'></div>
+<div class="flex flex-col">
+<h1 class="text-white text-lg font-bold tracking-tight">DXVK Studio</h1>
+<p class="text-slate-400 text-xs font-medium bg-white/5 px-2 py-0.5 rounded-full w-fit">v2.4.0 Tahoe</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/20 text-white border border-primary/20 shadow-[0_0_15px_rgba(0,123,255,0.2)] transition-all group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 1, 'wght' 400;">grid_view</span>
+<span class="text-sm font-semibold">Library</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 0, 'wght' 400;">download</span>
+<span class="text-sm font-medium">Downloads</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 0, 'wght' 400;">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 0, 'wght' 400;">history</span>
+<span class="text-sm font-medium">Logs</span>
+</button>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-white/5">
+<div class="glass-card p-3 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-white/10">
+<div class="bg-center bg-cover rounded-full size-9 ring-2 ring-primary/30" data-alt="User profile avatar showing a stylized person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCiBOivSQ6Aj3m-b7gBGzNpD8Uk3szdh1BPM7fF9sqQFeAM71hsFNVJc0J2-ZOHJEfvRdtZaNq7wLkeqxLLZh5eAM7t82f6AqjQURsW1KeF68wH5BnIx3qOa-nogPyTXVvLPbZp4sJGL6qfMLCbTmKGcy7WQaf4lrhBHgdH4MKKcZwbh8lLVjmoPvvVpcrDm5bfAYQin9mrIzbcNzBc5bF2PTuziUzbi7vVYs74voIwcT9tUfn888n4yhMUHhvmRhpCgOLGx4EM6Q");'></div>
+<div class="flex flex-col">
+<p class="text-white text-sm font-medium">Alex Dev</p>
+<p class="text-slate-400 text-xs">Pro License</p>
+</div>
+<span class="material-symbols-outlined text-slate-500 ml-auto text-sm">more_vert</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full relative z-10 overflow-hidden">
+<!-- Header Section -->
+<header class="flex flex-col pt-8 px-10 pb-4 shrink-0 gap-6">
+<div class="flex justify-between items-end">
+<div class="flex flex-col gap-1">
+<h2 class="text-white text-4xl font-black tracking-tight drop-shadow-lg">My Library</h2>
+<p class="text-slate-400 text-base font-normal">Manage your DXVK installations and configs</p>
+</div>
+<div class="flex gap-4 items-center">
+<!-- Search Bar -->
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-64 pl-10 pr-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all text-sm backdrop-blur-md" placeholder="Find a game..." type="text"/>
+</div>
+<button class="flex items-center justify-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-[0_0_20px_rgba(0,123,255,0.3)] hover:shadow-[0_0_25px_rgba(0,123,255,0.5)] transition-all border border-white/10">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>Add Game</span>
+</button>
+</div>
+</div>
+<!-- Chips / Filters -->
+<div class="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+<button class="flex items-center gap-2 h-9 px-4 rounded-lg bg-white/10 text-white text-sm font-medium border border-white/10 hover:bg-white/20 transition-colors whitespace-nowrap">
+                    All Games <span class="bg-white/20 text-xs py-0.5 px-1.5 rounded-md ml-1">12</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-lg bg-transparent text-slate-400 text-sm font-medium border border-transparent hover:bg-white/5 hover:text-white transition-colors whitespace-nowrap">
+                    Installed <span class="bg-white/5 text-xs py-0.5 px-1.5 rounded-md ml-1">8</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-lg bg-transparent text-slate-400 text-sm font-medium border border-transparent hover:bg-white/5 hover:text-white transition-colors whitespace-nowrap">
+                    Update Available <span class="bg-amber-500/20 text-amber-500 text-xs py-0.5 px-1.5 rounded-md ml-1">2</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-lg bg-transparent text-slate-400 text-sm font-medium border border-transparent hover:bg-white/5 hover:text-white transition-colors whitespace-nowrap">
+                    Favorites
+                </button>
+<div class="ml-auto flex items-center gap-2">
+<span class="text-slate-500 text-xs font-medium uppercase tracking-wider mr-2">Sort By</span>
+<button class="flex items-center gap-1 text-slate-300 hover:text-white text-sm font-medium">
+                        Last Played
+                        <span class="material-symbols-outlined text-[18px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Scrollable Grid Content -->
+<div class="flex-1 overflow-y-auto px-10 pb-10">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<!-- Card 1: Cyberpunk 2077 -->
+<div class="glass-card rounded-2xl p-4 flex flex-col gap-4 group relative overflow-hidden">
+<!-- Status Badge Absolute -->
+<div class="absolute top-4 right-4 z-10">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-2.5 py-1 text-xs font-semibold text-green-400 border border-green-500/20 backdrop-blur-md shadow-lg">
+<span class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                            Installed
+                        </span>
+</div>
+<!-- Image -->
+<div class="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-800">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Cyberpunk 2077 game cover art with futuristic city" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCgh3_3iTvxFQ5TfCarRWDmFj9nUx9SCcElBdmMFyNMoXpd8p2tz_qG9l2Sih405pyID99UZty7fzFIkrBt8_0V1vBt6H62MjpD1AZk6HYH8qB3K7cjVNRJdtomwWUPATagJms49j_V5k_6Pho0xH2Qc8Rox85qw95B1UtzlIzFzxsWg1TTDYtxat_IPN-lpGn_A0aV1zMvFwBKXPexB9-r47eQXIjDBrKqITceUYJst6_DVX3vLdNZOjPxKl_K2jMpPUeW5yQrmg");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+<!-- Overlay Play Button on Hover -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-[2px]">
+<button class="bg-white text-black rounded-full p-3 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px] ml-1">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Info -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<h3 class="text-white text-lg font-bold leading-tight group-hover:text-primary transition-colors">Cyberpunk 2077</h3>
+<div class="flex gap-1">
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/10 text-slate-300 border border-white/5">x64</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/10 text-slate-300 border border-white/5">DX12</span>
+</div>
+</div>
+<div class="h-px bg-white/10 w-full my-1"></div>
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div class="flex flex-col">
+<span class="text-slate-500">Playtime</span>
+<span class="text-slate-200 font-medium">124h 30m</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-slate-500">Last Played</span>
+<span class="text-slate-200 font-medium">2 hours ago</span>
+</div>
+</div>
+</div>
+</div>
+<!-- More cards follow same pattern... -->
+</div>
+<!-- Scan for games helper -->
+<div class="mt-10 flex justify-center pb-8">
+<button class="glass-card px-8 py-4 rounded-full flex items-center gap-3 text-slate-400 hover:text-white hover:bg-white/10 group transition-all">
+<span class="material-symbols-outlined group-hover:animate-spin">sync</span>
+<span class="font-medium text-sm">Scan folders for new games</span>
+</button>
+</div>
+</div>
+<!-- Floating Action Button -->
+<div class="absolute bottom-8 right-8 z-50">
+<button class="flex items-center justify-center size-14 rounded-full bg-primary text-white shadow-[0_0_30px_rgba(0,123,255,0.4)] hover:shadow-[0_0_40px_rgba(0,123,255,0.6)] hover:scale-110 transition-all border border-white/20">
+<span class="material-symbols-outlined text-[28px]">search</span>
+</button>
+</div>
+</main>
+</body></html>

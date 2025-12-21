@@ -1,5 +1,3 @@
-import './Sidebar.css'
-
 type View = 'library' | 'settings' | 'downloads'
 
 interface SidebarProps {
@@ -8,66 +6,86 @@ interface SidebarProps {
   installedVersions: number
 }
 
-const navItems: { id: View; label: string; icon: JSX.Element }[] = [
-  {
-    id: 'library',
-    label: 'Game Library',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    )
-  },
-  {
-    id: 'downloads',
-    label: 'DXVK Versions',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-        <polyline points="7,10 12,15 17,10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-    )
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-      </svg>
-    )
-  }
+const navItems: { id: View; label: string; icon: string }[] = [
+  { id: 'library', label: 'Library', icon: 'grid_view' },
+  { id: 'downloads', label: 'Downloads', icon: 'download' },
+  { id: 'settings', label: 'Settings', icon: 'settings' }
 ]
 
 export function Sidebar({ currentView, onViewChange, installedVersions }: SidebarProps) {
   return (
-    <nav className="sidebar">
-      <ul className="sidebar-nav">
-        {navItems.map(item => (
-          <li key={item.id}>
+    <aside className="glass-panel w-[280px] h-full flex flex-col z-20 shrink-0 relative border-r border-r-white/5">
+      {/* Logo Section */}
+      <div className="p-6 pb-2">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center justify-center size-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30 ring-1 ring-white/10">
+            <span
+              className="material-symbols-outlined text-white text-[28px]"
+              style={{ fontVariationSettings: "'FILL' 1, 'wght' 600" }}
+            >
+              layers
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-white text-lg font-bold tracking-tight">DXVK Studio</h1>
+            <p className="text-slate-400 text-xs font-medium bg-white/5 px-2 py-0.5 rounded-full w-fit">v2.4.0 Tahoe</p>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex flex-col gap-2">
+          {navItems.map(item => (
             <button
-              className={`sidebar-item ${currentView === item.id ? 'active' : ''}`}
+              key={item.id}
               onClick={() => onViewChange(item.id)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${currentView === item.id
+                  ? 'bg-primary/20 text-white border border-primary/20 shadow-[0_0_15px_rgba(0,123,255,0.2)]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
               aria-current={currentView === item.id ? 'page' : undefined}
             >
-              <span className="sidebar-icon">{item.icon}</span>
-              <span className="sidebar-label">{item.label}</span>
+              <span
+                className="material-symbols-outlined group-hover:scale-110 transition-transform"
+                style={{
+                  fontVariationSettings: currentView === item.id
+                    ? "'FILL' 1, 'wght' 400"
+                    : "'FILL' 0, 'wght' 400"
+                }}
+              >
+                {item.icon}
+              </span>
+              <span className={`text-sm ${currentView === item.id ? 'font-semibold' : 'font-medium'}`}>
+                {item.label}
+              </span>
             </button>
-          </li>
-        ))}
-      </ul>
+          ))}
 
-      <div className="sidebar-footer">
-        <div className="sidebar-version">
-          <span className="text-tertiary">DXVK Versions</span>
-          <span className="badge badge-success">{installedVersions} installed</span>
+          {/* Logs - extra nav item */}
+          <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors group border border-transparent">
+            <span
+              className="material-symbols-outlined group-hover:scale-110 transition-transform"
+              style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}
+            >
+              history
+            </span>
+            <span className="text-sm font-medium">Logs</span>
+          </button>
+        </nav>
+      </div>
+
+      {/* User Profile Footer */}
+      <div className="mt-auto p-6 border-t border-white/5">
+        <div className="glass-card p-3 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-white/10 transition-colors">
+          <div className="flex items-center justify-center size-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 ring-2 ring-primary/30">
+            <span className="material-symbols-outlined text-white text-[18px]">person</span>
+          </div>
+          <div className="flex flex-col flex-1 min-w-0">
+            <p className="text-white text-sm font-medium truncate">Local User</p>
+            <p className="text-slate-400 text-xs">{installedVersions} DXVK versions</p>
+          </div>
+          <span className="material-symbols-outlined text-slate-500 text-sm">more_vert</span>
         </div>
       </div>
-    </nav>
+    </aside>
   )
 }

@@ -1,32 +1,44 @@
-/* App Layout - Native Window */
+/* App Layout - Google Stitch Design */
 .app {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
   overflow: hidden;
   background: var(--material-content);
+  position: relative;
 }
 
 .app-main {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
+  z-index: 10;
 }
 
 .app-content {
   flex: 1;
-  padding: var(--space-5);
-  background: var(--material-content);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-content>main,
+.app-content>.game-grid,
+.app-content>.version-manager,
+.app-content>.settings-page {
+  flex: 1;
   overflow-y: auto;
+  padding: 0 var(--space-10) var(--space-10);
 }
 
 .app-sidebar-right {
-  width: 300px;
+  width: 320px;
   padding: var(--space-4);
-  background: var(--material-sidebar);
-  backdrop-filter: var(--vibrancy-sidebar);
-  -webkit-backdrop-filter: var(--vibrancy-sidebar);
-  border-left: 0.5px solid var(--separator-non-opaque);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid var(--glass-border);
   overflow-y: auto;
 }
 
@@ -41,6 +53,8 @@
   color: var(--system-red);
   font-size: var(--text-sm);
   animation: slideUp var(--duration-fast) var(--ease-out-expo);
+  position: relative;
+  z-index: 100;
 }
 
 .error-dismiss {

@@ -1,33 +1,51 @@
+@import "tailwindcss";
+
+/* ===== Tailwind v4 Theme Extension ===== */
+@theme {
+  --color-primary: #007bff;
+  --color-background-dark: #0f1115;
+  --color-glass-bg: rgba(30, 35, 45, 0.4);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-highlight: rgba(255, 255, 255, 0.05);
+  --font-family-display: "Inter", sans-serif;
+}
+
 /**
- * DXVK Studio - First-Party AAA Native Design
+ * DXVK Studio - Google Stitch Premium Redesign
  *
- * Design Philosophy: As if Apple made it
- * - Premium glass materials with proper layering
- * - Spring-based animations for organic feel
- * - Precise 4px grid spacing
- * - Native macOS patterns and interactions
+ * Design Philosophy: Glassmorphism + Ambient Lighting
+ * - Deep dark background with ambient color glows
+ * - Glass panels with blur effects
+ * - Cover art cards with hover interactions
+ * - Inter font family for modern typography
  *
  * Laws of UX:
  * - Aesthetic-Usability: Premium = perceived quality
  * - Fitts's Law: 44px min touch targets
  * - Doherty: <200ms micro-interactions
- * - Jakob's Law: Native macOS patterns
+ * - Jakob's Law: Native patterns
  */
 
-/* ===== macOS 26 Tahoe Design Tokens ===== */
+/* ===== Google Stitch Redesign Tokens ===== */
 :root {
-  /* === Materials === */
-  --material-chrome: rgba(30, 30, 32, 0.78);
-  --material-sidebar: rgba(28, 28, 30, 0.92);
-  --material-content: #1C1C1E;
-  --material-elevated: rgba(44, 44, 46, 0.95);
-  --material-popover: rgba(50, 50, 52, 0.95);
-  --material-selection: rgba(0, 122, 255, 0.18);
+  /* === Deep Dark Background === */
+  --background-dark: #0f1115;
+  --material-chrome: rgba(30, 35, 45, 0.78);
+  --material-sidebar: rgba(30, 35, 45, 0.4);
+  --material-content: #0f1115;
+  --material-elevated: rgba(30, 35, 45, 0.95);
+  --material-popover: rgba(30, 35, 45, 0.95);
+  --material-selection: rgba(0, 123, 255, 0.18);
+  /* === Glass Effects === */
+  --glass-bg: rgba(30, 35, 45, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
 
   /* === Fills === */
   --fill-primary: rgba(255, 255, 255, 0.12);
   --fill-secondary: rgba(255, 255, 255, 0.08);
   --fill-tertiary: rgba(255, 255, 255, 0.05);
+  --fill-quaternary: rgba(255, 255, 255, 0.03);
   --fill-quaternary: rgba(255, 255, 255, 0.03);
 
   /* === Labels === */
@@ -80,7 +98,7 @@
   --space-16: 64px;
 
   /* === Typography === */
-  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-system: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
 
   --text-xs: 10px;
@@ -624,4 +642,277 @@ body {
 ::selection {
   background: rgba(0, 122, 255, 0.30);
   color: inherit;
+}
+
+/* ===== Glassmorphism Utilities (Google Stitch) ===== */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -10px rgba(0, 123, 255, 0.15);
+}
+
+/* ===== Ambient Background Glows ===== */
+.ambient-glow {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 123, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  top: -100px;
+  left: -100px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-glow-2 {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(100, 50, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== Game Cover Card Styles ===== */
+.game-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: rgba(30, 35, 45, 0.5);
+}
+
+.game-cover-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover .game-cover-image {
+  transform: scale(1.05);
+}
+
+.game-cover-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%, transparent 100%);
+  opacity: 0.6;
+}
+
+.game-cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  transition: opacity 0.3s ease;
+}
+
+.glass-card:hover .game-cover-overlay {
+  opacity: 1;
+}
+
+/* ===== Status Badges ===== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-md);
+}
+
+.status-badge-installed {
+  background: rgba(48, 209, 88, 0.2);
+  color: var(--system-green-vibrant);
+  border: 1px solid rgba(48, 209, 88, 0.2);
+}
+
+.status-badge-update {
+  background: rgba(255, 159, 10, 0.2);
+  color: var(--system-orange);
+  border: 1px solid rgba(255, 159, 10, 0.2);
+}
+
+.status-badge-not-installed {
+  background: rgba(142, 142, 147, 0.2);
+  color: var(--label-secondary);
+  border: 1px solid rgba(142, 142, 147, 0.2);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-dot-pulse {
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===== Play Button ===== */
+.play-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  box-shadow: var(--shadow-lg);
+}
+
+.play-button:hover {
+  transform: scale(1.1);
+}
+
+/* ===== Material Symbols ===== */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Floating Action Button ===== */
+.fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--system-blue);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 30px rgba(0, 123, 255, 0.4);
+  transition: all 0.3s ease;
+  z-index: var(--z-sticky);
+}
+
+.fab:hover {
+  box-shadow: 0 0 40px rgba(0, 123, 255, 0.6);
+  transform: scale(1.1);
+}
+
+/* ===== Search Input ===== */
+.search-input {
+  display: block;
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--label-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-system);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: var(--label-tertiary);
+}
+
+.search-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(0, 123, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+/* ===== Filter Chips ===== */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--label-secondary);
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--label-primary);
+}
+
+.filter-chip.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--label-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.filter-chip-count {
+  font-size: var(--text-xs);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filter-chip.active .filter-chip-count {
+  background: rgba(255, 255, 255, 0.2);
 }
