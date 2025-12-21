@@ -19,6 +19,7 @@ import {
   checkIntegrity,
   writeConfig
 } from './services/deployer'
+import { detectAntiCheat, getAntiCheatSummary } from './services/anti-cheat'
 import type { Game, DxvkFork, DxvkConfig } from '../src/shared/types'
 
 // ============================================
@@ -281,3 +282,16 @@ ipcMain.handle('config:save', async (_, gamePath: string, config: DxvkConfig) =>
     return { success: false, error: (error as Error).message }
   }
 })
+
+// ============================================
+// IPC Handlers - Anti-Cheat Detection
+// ============================================
+
+ipcMain.handle('anticheat:detect', async (_, gamePath: string) => {
+  return detectAntiCheat(gamePath)
+})
+
+ipcMain.handle('anticheat:summary', async (_, gamePath: string) => {
+  return getAntiCheatSummary(gamePath)
+})
+

@@ -145,6 +145,32 @@ function getAllSteamGames() {
 }
 const PE_MACHINE_I386 = 332;
 const PE_MACHINE_AMD64 = 34404;
+const ANTI_CHEAT_SIGNATURES = [
+  {
+    name: "EasyAntiCheat",
+    files: ["EasyAntiCheat.exe", "EasyAntiCheat_x64.dll", "EasyAntiCheat_x86.dll"],
+    riskLevel: "high",
+    description: "Kernel-level anti-cheat. DXVK may trigger a ban."
+  },
+  {
+    name: "BattlEye",
+    files: ["BEService.exe", "BEClient_x64.dll", "BEClient.dll"],
+    riskLevel: "high",
+    description: "Kernel-level anti-cheat. DXVK may trigger a ban."
+  },
+  {
+    name: "Vanguard",
+    files: ["vgc.exe", "vgk.sys"],
+    riskLevel: "high",
+    description: "Riot Vanguard. Do not use DXVK with Valorant."
+  },
+  {
+    name: "PunkBuster",
+    files: ["pbsvc.exe", "PnkBstrA.exe", "PnkBstrB.exe"],
+    riskLevel: "medium",
+    description: "Legacy anti-cheat. May or may not detect DXVK."
+  }
+];
 function readBytesAt(fd, offset, length) {
   const buffer = Buffer.alloc(length);
   fs.readSync(fd, buffer, 0, length, offset);
@@ -531,6 +557,53 @@ function writeConfig(gamePath, config) {
     writeManifest(gamePath, manifest);
   }
 }
+function findFilesRecursive(dir, targetFiles, maxDepth = 3, currentDepth = 0) {
+  if (currentDepth > maxDepth) return [];
+  const foundFiles = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isFile()) {
+        const lowerName = entry.name.toLowerCase();
+        if (targetFiles.some((target) => lowerName === target.toLowerCase())) {
+          foundFiles.push(fullPath);
+        }
+      } else if (entry.isDirectory()) {
+        const skipDirs = ["node_modules", ".git", "__pycache__", "logs", "saves"];
+        if (!skipDirs.includes(entry.name.toLowerCase())) {
+          foundFiles.push(...findFilesRecursive(fullPath, targetFiles, maxDepth, currentDepth + 1));
+        }
+      }
+    }
+  } catch {
+  }
+  return foundFiles;
+}
+function detectAntiCheat(gamePath) {
+  if (!fs.existsSync(gamePath)) {
+    return [];
+  }
+  const detected = [];
+  for (const signature of ANTI_CHEAT_SIGNATURES) {
+    const foundFiles = findFilesRecursive(gamePath, signature.files);
+    if (foundFiles.length > 0) {
+      detected.push({
+        ...signature,
+        foundFiles
+      });
+    }
+  }
+  return detected;
+}
+function getAntiCheatSummary(gamePath) {
+  const detected = detectAntiCheat(gamePath);
+  return {
+    hasAntiCheat: detected.length > 0,
+    highRisk: detected.some((ac) => ac.riskLevel === "high"),
+    detected: detected.map((ac) => ac.name)
+  };
+}
 process.env.DIST = path.join(__dirname, "../dist");
 process.env.VITE_PUBLIC = electron.app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 let mainWindow = null;
@@ -706,4 +779,10 @@ electron.ipcMain.handle("config:save", async (_, gamePath, config) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+});
+electron.ipcMain.handle("anticheat:detect", async (_, gamePath) => {
+  return detectAntiCheat(gamePath);
+});
+electron.ipcMain.handle("anticheat:summary", async (_, gamePath) => {
+  return getAntiCheatSummary(gamePath);
 });

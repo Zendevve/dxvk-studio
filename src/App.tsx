@@ -392,6 +392,30 @@ function GameDetailView({
   }>>([])
   const [isLoadingEngines, setIsLoadingEngines] = useState(false)
 
+  // Anti-cheat detection state
+  const [antiCheatWarning, setAntiCheatWarning] = useState<{
+    hasAntiCheat: boolean
+    highRisk: boolean
+    detected: string[]
+  } | null>(null)
+  const [showAntiCheatOverride, setShowAntiCheatOverride] = useState(false)
+
+  // Scan for anti-cheat on mount
+  useEffect(() => {
+    if (!isElectron) return
+
+    const checkAntiCheat = async () => {
+      try {
+        const summary = await window.electronAPI.getAntiCheatSummary(game.path)
+        setAntiCheatWarning(summary)
+      } catch (error) {
+        console.error('Failed to check anti-cheat:', error)
+      }
+    }
+
+    checkAntiCheat()
+  }, [game.path])
+
   // Fetch available engines when fork changes
   useEffect(() => {
     if (!isElectron) return
@@ -570,6 +594,47 @@ function GameDetailView({
               </div>
             </div>
 
+            {/* Anti-Cheat Warning Banner */}
+            {antiCheatWarning?.hasAntiCheat && game.dxvkStatus !== 'active' && (
+              <div className={`rounded-lg p-4 mb-6 border ${antiCheatWarning.highRisk
+                ? 'bg-accent-danger/10 border-accent-danger/30'
+                : 'bg-accent-warning/10 border-accent-warning/30'
+                }`}>
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'
+                    }`} />
+                  <div className="flex-1">
+                    <h4 className={`font-semibold ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'
+                      }`}>
+                      {antiCheatWarning.highRisk ? '⚠️ High-Risk Anti-Cheat Detected' : '⚡ Anti-Cheat Detected'}
+                    </h4>
+                    <p className="text-sm text-studio-300 mt-1">
+                      Found: <strong>{antiCheatWarning.detected.join(', ')}</strong>
+                    </p>
+                    <p className="text-sm text-studio-400 mt-2">
+                      {antiCheatWarning.highRisk
+                        ? 'Using DXVK with this game may result in a permanent ban. Only proceed if this is a single-player game or you understand the risks.'
+                        : 'This game has anti-cheat software. DXVK may or may not be detected. Proceed with caution.'}
+                    </p>
+
+                    {antiCheatWarning.highRisk && (
+                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showAntiCheatOverride}
+                          onChange={(e) => setShowAntiCheatOverride(e.target.checked)}
+                          className="w-4 h-4 rounded border-studio-600 bg-studio-800 text-accent-danger focus:ring-accent-danger"
+                        />
+                        <span className="text-sm text-studio-300">
+                          I understand the risks and want to proceed anyway
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3">
               {game.dxvkStatus === 'active' ? (
                 <button
@@ -583,7 +648,11 @@ function GameDetailView({
               ) : (
                 <button
                   onClick={handleInstall}
-                  disabled={isInstalling || game.architecture === 'unknown'}
+                  disabled={
+                    isInstalling ||
+                    game.architecture === 'unknown' ||
+                    (antiCheatWarning?.highRisk && !showAntiCheatOverride)
+                  }
                   className="btn-primary flex items-center gap-2"
                 >
                   {isInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

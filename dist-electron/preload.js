@@ -44,5 +44,10 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   // ============================================
   // Configuration
   // ============================================
-  saveConfig: (gamePath, config) => electron.ipcRenderer.invoke("config:save", gamePath, config)
+  saveConfig: (gamePath, config) => electron.ipcRenderer.invoke("config:save", gamePath, config),
+  // ============================================
+  // Anti-Cheat Detection
+  // ============================================
+  detectAntiCheat: (gamePath) => electron.ipcRenderer.invoke("anticheat:detect", gamePath),
+  getAntiCheatSummary: (gamePath) => electron.ipcRenderer.invoke("anticheat:summary", gamePath)
 });

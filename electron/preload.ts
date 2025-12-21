@@ -85,6 +85,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============================================
   saveConfig: (gamePath: string, config: DxvkConfig) =>
     ipcRenderer.invoke('config:save', gamePath, config) as Promise<{ success: boolean; error?: string }>,
+
+  // ============================================
+  // Anti-Cheat Detection
+  // ============================================
+  detectAntiCheat: (gamePath: string) =>
+    ipcRenderer.invoke('anticheat:detect', gamePath) as Promise<Array<{
+      name: string
+      files: string[]
+      riskLevel: 'high' | 'medium' | 'low'
+      description: string
+      foundFiles: string[]
+    }>>,
+  getAntiCheatSummary: (gamePath: string) =>
+    ipcRenderer.invoke('anticheat:summary', gamePath) as Promise<{
+      hasAntiCheat: boolean
+      highRisk: boolean
+      detected: string[]
+    }>,
 })
 
 // TypeScript declarations for the exposed API
@@ -128,6 +146,20 @@ declare global {
 
       // Config
       saveConfig: (gamePath: string, config: DxvkConfig) => Promise<{ success: boolean; error?: string }>
+
+      // Anti-Cheat
+      detectAntiCheat: (gamePath: string) => Promise<Array<{
+        name: string
+        files: string[]
+        riskLevel: 'high' | 'medium' | 'low'
+        description: string
+        foundFiles: string[]
+      }>>
+      getAntiCheatSummary: (gamePath: string) => Promise<{
+        hasAntiCheat: boolean
+        highRisk: boolean
+        detected: string[]
+      }>
     }
   }
 }
