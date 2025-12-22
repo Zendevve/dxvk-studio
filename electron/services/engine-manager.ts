@@ -165,15 +165,19 @@ export async function fetchReleases(fork: DxvkFork, limit = 10): Promise<DxvkRel
  * Fallback releases when GitHub API is unavailable
  */
 function getFallbackReleases(fork: DxvkFork): DxvkRelease[] {
-  // Updated December 2024 - check GitHub for latest versions
+  // Updated December 2024 - these are actual GitHub release versions
+  // Official: https://github.com/doitsujin/dxvk/releases
+  // GPL Async: https://github.com/Sporif/dxvk-async/releases (older versions)
+  // NVAPI: https://github.com/jp7677/dxvk-nvapi/releases
   const fallbackData: Record<DxvkFork, { versions: string[], assetPrefix: string }> = {
     official: {
-      versions: ['2.5.2', '2.5.1', '2.5', '2.4.1', '2.4', '2.3.1'],
+      versions: ['2.5.3', '2.5.1', '2.5', '2.4.1', '2.4', '2.3.1'],
       assetPrefix: 'dxvk'
     },
     gplasync: {
-      versions: ['2.5.2', '2.5.1', '2.5', '2.4.1', '2.4'],
-      assetPrefix: 'dxvk-gplasync'
+      // GPL Async fork - check if these versions exist
+      versions: ['2.4', '2.3.1', '2.3', '2.2', '2.1'],
+      assetPrefix: 'dxvk-async'
     },
     nvapi: {
       versions: ['0.7.1', '0.7.0', '0.6.9', '0.6.8', '0.6.7'],

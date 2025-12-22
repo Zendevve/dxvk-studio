@@ -351,12 +351,13 @@ async function fetchReleases(fork, limit = 10) {
 function getFallbackReleases(fork) {
   const fallbackData = {
     official: {
-      versions: ["2.5.2", "2.5.1", "2.5", "2.4.1", "2.4", "2.3.1"],
+      versions: ["2.5.3", "2.5.1", "2.5", "2.4.1", "2.4", "2.3.1"],
       assetPrefix: "dxvk"
     },
     gplasync: {
-      versions: ["2.5.2", "2.5.1", "2.5", "2.4.1", "2.4"],
-      assetPrefix: "dxvk-gplasync"
+      // GPL Async fork - check if these versions exist
+      versions: ["2.4", "2.3.1", "2.3", "2.2", "2.1"],
+      assetPrefix: "dxvk-async"
     },
     nvapi: {
       versions: ["0.7.1", "0.7.0", "0.6.9", "0.6.8", "0.6.7"],
