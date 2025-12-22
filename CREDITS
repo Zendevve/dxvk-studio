@@ -1,0 +1,18 @@
+# Credits
+
+## Project Maintainer
+- **Zendevve** - [GitHub Profile](https://github.com/Zendevve)
+
+## Third Party Libraries
+This project relies on the following open source technologies:
+
+- **Electron** - [https://www.electronjs.org/](https://www.electronjs.org/)
+- **React** - [https://reactjs.org/](https://reactjs.org/)
+- **TypeScript** - [https://www.typescriptlang.org/](https://www.typescriptlang.org/)
+- **TailwindCSS** - [https://tailwindcss.com/](https://tailwindcss.com/)
+- **Lucide Icons** - [https://lucide.dev/](https://lucide.dev/)
+
+## core Technologies
+- **DXVK** (doitsujin) - [https://github.com/doitsujin/dxvk](https://github.com/doitsujin/dxvk)
+- **DXVK GPL Async** (Ph42oN) - [https://gitlab.com/Ph42oN/dxvk-gplasync](https://gitlab.com/Ph42oN/dxvk-gplasync)
+- **DXVK NVAPI** (jp7677) - [https://github.com/jp7677/dxvk-nvapi](https://github.com/jp7677/dxvk-nvapi)

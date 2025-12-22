@@ -1,202 +1,145 @@
 <p align="center">
-  <img src="public/icon.png" alt="DXVK Studio" width="128" height="128">
-</p>
-
-<h1 align="center">DXVK Studio</h1>
-
-<p align="center">
-  <strong>A modern desktop application for managing DXVK on Windows games</strong>
+  <img src="public/icon.png" alt="DXVK Studio Icon" width="128" height="128">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white" alt="Electron">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" alt="React">
-  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <a href="https://github.com/facebook/react">
+    <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB" alt="React Badge">
+  </a>
+  <a href="https://www.electronjs.org/">
+    <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=Electron&logoColor=white" alt="Electron Badge">
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img src="https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript Badge">
+  </a>
+  <a href="https://tailwindcss.com/">
+    <img src="https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS Badge">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License Badge">
+  </a>
 </p>
 
 ---
 
-## 🎮 What is this?
+# DXVK Studio
 
-**DXVK Studio** transforms [DXVK](https://github.com/doitsujin/dxvk) from a command-line utility into a beautiful, user-friendly desktop app. DXVK translates DirectX 9/10/11 calls to Vulkan, often delivering **significant performance improvements** on modern GPUs.
+**DXVK Studio** is a professional, open-source management suite for DXVK on Windows. It transforms the powerful DXVK translation layer from a command-line utility into a sleek, user-friendly desktop application, allowing you to easily install, manage, and configure Vulkan wrappers for your game library.
 
-### The Problem
-Installing DXVK manually means downloading archives, copying DLLs to the right folders, managing config files, and hoping you got the 32-bit vs 64-bit right. Mess it up, and your game won't launch.
+## Table of Contents
+- [Features](#features)
+- [Background Story](#background-story)
+- [Getting Started](#getting-started)
+- [What's Inside?](#whats-inside)
+- [What's Next?](#whats-next)
+- [Contributing](#contributing)
+- [Resources](#resources)
+- [License](#license)
+- [Credits](#credits)
 
-### The Solution
-One-click installation. Automatic architecture detection. Version management. Original DLL backup and restore. All wrapped in a sleek interface.
+## Features
+- **Smart Game Discovery**: Automatically scans Steam libraries (VDF parsing) to find installed games.
+- **Architecture Detection**: Analyzes PE headers to automatically determine if a game is 32-bit or 64-bit, ensuring the correct DLLs are installed.
+- **Engine Management**: Downloads and caches multiple versions of DXVK from GitHub/GitLab, supporting Official, GPL Async, and NVAPI forks.
+- **Safe Deployment**: Automatically backs up original system DLLs (`d3d9.dll`, `dxgi.dll`) before installation and offers one-click restoration.
+- **Configuration**: Visual editor for `dxvk.conf` to tweak performance settings without editing text files.
+- **Monetization**: Open Core model—free source, optional paid binaries/support.
 
----
+## Background Story
+DXVK is an incredible tool that often revitalizes older games and improves performance on modern hardware by translating DirectX calls to Vulkan. However, manual installation is tedious: downloading archives, extracting specific DLLs, managing 32-bit vs 64-bit versions, and editing config files.
 
-## ✨ Features
+I built DXVK Studio to solve this "maintenance hell." I wanted a tool that felt native to Windows, respected user data (backups!), and made high-performance gaming accessible to everyone, not just power users comfortable with the command line.
 
-| Feature | Description |
-|---------|-------------|
-| 🔍 **Smart Game Discovery** | Auto-detect Steam games or add any game manually |
-| 🎯 **Architecture Detection** | PE header analysis for accurate 32/64-bit detection |
-| ⬇️ **Version Management** | Download and cache multiple DXVK versions from GitHub |
-| 🔀 **Multiple Forks** | Official, GPL Async, and NVAPI fork support |
-| 💾 **Safe Deployment** | Automatic backup of original DLLs, one-click restore |
-| ⚙️ **Config Generation** | Create `dxvk.conf` with common performance settings |
-
----
-
-## 🖼️ Screenshots
-
-*Coming soon — UI built with React, TailwindCSS, and Lucide icons*
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      DXVK Studio                            │
-├─────────────────────┬───────────────────────────────────────┤
-│   Renderer Process  │         Main Process                  │
-│   (React + TS)      │         (Electron + Node.js)          │
-│                     │                                       │
-│   • Game Grid UI    │   • steam-scanner.ts  → VDF parsing   │
-│   • Detail Views    │   • pe-analyzer.ts    → Architecture  │
-│   • Version Select  │   • engine-manager.ts → GitHub API    │
-│                     │   • deployer.ts       → DLL handling  │
-│         ↕           │                                       │
-│   Context Bridge    │                                       │
-│   (preload.ts)      │                                       │
-└─────────────────────┴───────────────────────────────────────┘
-```
-
-### Tech Stack
-
-- **Frontend**: React 18 + TypeScript + TailwindCSS
-- **Desktop**: Electron 33 with context isolation
-- **Build**: Vite + electron-builder
-- **IPC**: Type-safe bridge via `preload.ts`
-
-### Core Services
-
-| Service | Responsibility |
-|---------|---------------|
-| `steam-scanner.ts` | Parse Steam's VDF format, discover installed games |
-| `pe-analyzer.ts` | Read PE headers to detect 32-bit vs 64-bit executables |
-| `engine-manager.ts` | Fetch releases from GitHub, download and cache DXVK |
-| `deployer.ts` | Copy DLLs, backup originals, track via JSON manifest |
-
----
-
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
+- Windows 10 or 11
+- Vulkan-capable GPU drivers
+- Node.js 18+ (for development)
 
-- Windows 10/11
-- Node.js 18+
-- Vulkan-capable GPU
+### Installation
+You can download the latest pre-built installer from the [Releases](https://github.com/Zendevve/dxvk-studio/releases) page.
 
-### Development
+### Running Locally
+To build the project from source:
 
-```bash
-# Clone and install
-git clone https://github.com/Zendevve/dxvk-studio.git
-cd dxvk-studio
-npm install
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Zendevve/dxvk-studio.git
+   cd dxvk-studio
+   ```
 
-# Start dev server with hot reload
-npm run dev
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-### Production Build
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run build
-# Output: release/*.exe (NSIS installer + portable)
-```
+4. Build for production:
+   ```bash
+   npm run build
+   ```
 
----
+## What's Inside?
+A high-level overview of the project structure:
 
-## 📁 Project Structure
-
-```
+```text
 dxvk-studio/
-├── electron/
-│   ├── main.ts           # App lifecycle, IPC handlers
-│   ├── preload.ts        # Secure context bridge
-│   └── services/         # Core business logic
-├── src/
-│   ├── App.tsx           # Main React component
-│   ├── shared/types.ts   # Shared TypeScript types
-│   └── index.css         # TailwindCSS entry
-├── docs/
-│   ├── PRD.md            # Product requirements
-│   ├── ARCHITECTURE.md   # Technical design
-│   └── ADR/              # Architecture decisions
-└── AGENTS.md             # AI development rules (MCAF)
+├── electron/                  # Main Process
+│   ├── main.ts                # App entry point & window management
+│   ├── preload.ts             # IPC Context Bridge (Security)
+│   └── services/              # Core Logic
+│       ├── deployer.ts        # DLL replacement & backup logic
+│       ├── engine-manager.ts  # GitHub/GitLab API & Caching
+│       ├── pe-analyzer.ts     # Binary analysis
+│       └── steam-scanner.ts   # Game discovery
+├── src/                       # Renderer Process (UI)
+│   ├── components/            # React UI components
+│   ├── App.tsx                # Main view controller
+│   └── index.css              # Tailwind styling
+├── docs/                      # Documentation
+│   ├── ADR/                   # Architecture Decision Records
+│   └── Features/              # Feature specifications
+└── AGENTS.md                  # MCAF Rules (AI Context)
 ```
 
----
+## What's Next?
+- **Store Integrations**: Adding support for GOG Galaxy and Epic Games Store libraries.
+- **Profiles**: Per-game configuration profiles that persist across updates.
+- **Cloud Sync**: Syncing configurations between devices (Pro feature).
 
-## ⚠️ Anti-Cheat Warning
+## Contributing
+Contributions are welcome! This project follows the **MCAF** (Managed Code Coding AI Framework) standards.
 
-> **Do NOT use DXVK with online games using kernel-level anti-cheat.**
+1. Please read [AGENTS.md](AGENTS.md) to understand the strict rules and context preservation requirements.
+2. Review the [Architecture Documentation](docs/HOME.md) before making structural changes.
+3. Submit Pull Requests targeting the `main` branch.
 
-DXVK Studio will detect and warn about:
-- 🔴 EasyAntiCheat, BattlEye, Riot Vanguard
-- 🟡 PunkBuster
+## Resources
+- [Electron](https://www.electronjs.org/) - Build cross-platform desktop apps with JavaScript, HTML, and CSS.
+- [React](https://reactjs.org/) - A JavaScript library for building user interfaces.
+- [TailwindCSS](https://tailwindcss.com/) - A utility-first CSS framework for rapid UI development.
+- [Lucide](https://lucide.dev/) - Beautiful & consistent icon toolkit.
+- [DXVK](https://github.com/doitsujin/dxvk) - Vulkan-based implementation of D3D9, D3D10 and D3D11 for Linux / Wine.
 
-Using DXVK with these games may result in **permanent bans**. Stick to single-player or games without invasive anti-cheat.
+## License
+This project is licensed under the [MIT License](LICENSE).
+You are free to use, modify, and distribute the code, provided you include the original copyright notice.
 
----
+## Footer
 
-## 🗺️ Roadmap
-
-### ✅ Completed (MVP Core)
-- [x] Steam library scanning
-- [x] PE header architecture detection
-- [x] DXVK version fetching and caching
-- [x] DLL deployment with backup/restore
-- [x] Dynamic version dropdown from GitHub
-- [x] Manifest-based installation tracking
-
-### 🔜 In Progress
-- [ ] Anti-cheat detection UI warnings
-- [ ] Engine Manager view (list/delete cached versions)
-- [ ] dxvk.conf visual editor
-
-### 📋 Planned
-- [ ] GOG Galaxy integration
-- [ ] Epic Games Store integration
-- [ ] Profile system for game-specific configs
-
----
-
-## 🤝 Contributing
-
-This project follows [MCAF](https://mcaf.managed-code.com/) (Managed Code Coding AI Framework).
-
-1. Read [`AGENTS.md`](AGENTS.md) for development rules
-2. Check [`docs/`](docs/) for architecture and decisions
-3. Write feature docs before heavy coding
-4. Tests and code move together
-
----
-
-## 📜 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## 🙏 Credits
-
-Built on the shoulders of giants:
-
-- [DXVK](https://github.com/doitsujin/dxvk) by doitsujin — the magic behind the performance gains
-- [DXVK GPL Async](https://github.com/Ph42oN/dxvk-gplasync) by Ph42oN — async shader compilation
-- [DXVK NVAPI](https://github.com/jp7677/dxvk-nvapi) by jp7677 — NVIDIA-specific features
+**Credits**
+- **Author**: [Zendevve](https://github.com/Zendevve)
+- **Reference**: [Main Branch](https://github.com/Zendevve/dxvk-studio)
 
 ---
 
 <p align="center">
-  <sub>Made with ☕ and TypeScript</sub>
+  <a href="https://github.com/Zendevve/dxvk-studio">
+    <img src="public/icon.png" alt="DXVK Studio Icon" width="64" height="64">
+  </a>
 </p>
