@@ -6,7 +6,7 @@ import { existsSync } from 'fs'
 import { getAllSteamGames, findSteamPath, searchSteamStore, searchSteamStoreMultiple } from './services/steam-scanner'
 import { findGogGames } from './services/gog-scanner'
 import { findEpicGames } from './services/epic-scanner'
-import { analyzeExecutable, findGameExecutables } from './services/pe-analyzer'
+import { analyzeExecutable, findGameExecutables, getPeVersionInfo } from './services/pe-analyzer'
 import {
   getAvailableEngines,
   downloadEngine,
@@ -21,7 +21,8 @@ import {
   isDxvkInstalled,
   getInstalledVersion,
   checkIntegrity,
-  writeConfig
+  writeConfig,
+  readConfig
 } from './services/deployer'
 import { detectAntiCheat, getAntiCheatSummary } from './services/anti-cheat'
 import type { Game, DxvkFork, DxvkConfig } from '../src/shared/types'
@@ -260,6 +261,10 @@ ipcMain.handle('pe:findExecutables', async (_, gamePath: string) => {
   return findGameExecutables(gamePath)
 })
 
+ipcMain.handle('pe:getVersionInfo', async (_, exePath: string) => {
+  return getPeVersionInfo(exePath)
+})
+
 // ============================================
 // IPC Handlers - DXVK Engines
 // ============================================
@@ -357,6 +362,10 @@ ipcMain.handle('config:save', async (_, gamePath: string, config: DxvkConfig) =>
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
+})
+
+ipcMain.handle('config:read', async (_, gamePath: string) => {
+  return readConfig(gamePath)
 })
 
 // ============================================

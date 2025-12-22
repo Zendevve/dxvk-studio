@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('pe:analyze', path) as Promise<PEAnalysisResult>,
   findExecutables: (gamePath: string) =>
     ipcRenderer.invoke('pe:findExecutables', gamePath) as Promise<string[]>,
+  getVersionInfo: (path: string) =>
+    ipcRenderer.invoke('pe:getVersionInfo', path) as Promise<{ ProductName?: string; FileDescription?: string }>,
 
   // ============================================
   // DXVK Engines
@@ -105,6 +107,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============================================
   // Configuration
   // ============================================
+  readConfig: (gamePath: string) =>
+    ipcRenderer.invoke('config:read', gamePath) as Promise<DxvkConfig | null>,
   saveConfig: (gamePath: string, config: DxvkConfig) =>
     ipcRenderer.invoke('config:save', gamePath, config) as Promise<{ success: boolean; error?: string }>,
 
@@ -153,6 +157,7 @@ declare global {
       // PE Analysis
       analyzeExecutable: (path: string) => Promise<PEAnalysisResult>
       findExecutables: (gamePath: string) => Promise<string[]>
+      getVersionInfo: (path: string) => Promise<{ ProductName?: string; FileDescription?: string }>
 
       // Engines
       getAvailableEngines: (fork: DxvkFork) => Promise<DxvkEngine[]>
@@ -181,6 +186,7 @@ declare global {
       }>
 
       // Config
+      readConfig: (gamePath: string) => Promise<DxvkConfig | null>
       saveConfig: (gamePath: string, config: DxvkConfig) => Promise<{ success: boolean; error?: string }>
 
       // Anti-Cheat

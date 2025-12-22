@@ -22,6 +22,7 @@ import {
 import type { Game, DxvkFork } from './shared/types'
 
 import { ContextMenu } from './components/ContextMenu'
+import { ConfigEditorModal } from './components/ConfigEditorModal'
 
 // Check if running in Electron
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
@@ -145,10 +146,22 @@ function App() {
         ? grandParentFolder
         : parentFolder
 
-      // Smart Name Parsing: Use folder name if exe is generic or too short
-      const genericNames = ['launcher', 'game', 'start', 'client', 'app', 'play', 'setup', 'updater', 'boot', 'shipping', 'main', 'run']
+      // 1. Try PE VersionInfo (Most accurate)
+      try {
+        const versionInfo = await window.electronAPI.getVersionInfo(exePath)
+        if (versionInfo.ProductName && versionInfo.ProductName.trim().length > 2) {
+          gameName = versionInfo.ProductName.trim()
+        } else if (versionInfo.FileDescription && versionInfo.FileDescription.trim().length > 2) {
+          gameName = versionInfo.FileDescription.trim().replace(/ Application$| Executable$/i, '')
+        }
+      } catch (e) {
+        console.warn('Failed to read version info', e)
+      }
+
+      // 2. Smart Name Parsing: Use folder name if current name is generic or too short
+      const genericNames = ['launcher', 'game', 'start', 'client', 'app', 'play', 'setup', 'updater', 'boot', 'shipping', 'main', 'run', 'steam', 'epic']
       const isGeneric = genericNames.some(n => gameName.toLowerCase().includes(n))
-      const isTooShort = gameName.length <= 4 // Short names like "wow", "ue4", "dx11" are ambiguous
+      const isTooShort = gameName.length <= 3
 
       if ((isGeneric || isTooShort) && folderContext) {
         gameName = folderContext
@@ -177,11 +190,12 @@ function App() {
       }
 
       setGames(prev => [...prev, newGame])
+      setSelectedGame(newGame) // Auto-select the new game
 
       if (steamId) {
         showNotification('success', `Added ${gameName} (Found Cover Art)`)
       } else {
-        showNotification('success', `Added ${gameName} (${analysis.architecture}-bit)`)
+        showNotification('success', `Added ${gameName} (${analysis.architecture}-bit). Click Search to find cover art.`)
       }
 
     } catch (error) {

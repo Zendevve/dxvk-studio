@@ -149,3 +149,30 @@ export function findGameExecutables(gamePath: string): string[] {
 
   return executables
 }
+
+import { exec } from 'child_process'
+import { promisify } from 'util'
+const execAsync = promisify(exec)
+
+export interface PeVersionInfo {
+  ProductName?: string
+  FileDescription?: string
+  OriginalFilename?: string
+}
+
+export async function getPeVersionInfo(exePath: string): Promise<PeVersionInfo> {
+  try {
+    // Sanitize path for PowerShell
+    const safePath = exePath.replace(/'/g, "''")
+    const command = `powershell -NoProfile -Command "(Get-Item '${safePath}').VersionInfo | Select-Object ProductName, FileDescription, OriginalFilename | ConvertTo-Json"`
+
+    const { stdout } = await execAsync(command)
+    if (!stdout.trim()) return {}
+
+    // PowerShell might return a single object or array, validation needed or try/catch parsing
+    return JSON.parse(stdout)
+  } catch (error) {
+    // Silently fail if PowerShell fails or property missing
+    return {}
+  }
+}

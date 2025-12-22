@@ -243,6 +243,76 @@ export function updateDxvk(
 }
 
 /**
+ * Parse dxvk.conf content into config object
+ */
+export function parseConfigFile(content: string): DxvkConfig {
+  const config: DxvkConfig = {}
+  const lines = content.split('\n')
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+
+    const match = trimmed.match(/^([^=]+)=(.*)$/)
+    if (match) {
+      const key = match[1].trim()
+      const value = match[2].trim()
+
+      switch (key) {
+        case 'dxvk.enableAsync':
+        case 'dxvk.gplAsyncCache':
+          config.enableAsync = value === 'true'
+          break
+        case 'dxgi.maxFrameRate':
+          config.maxFrameRate = Number(value)
+          break
+        case 'dxgi.syncInterval':
+          config.syncInterval = Number(value)
+          break
+        case 'dxgi.maxFrameLatency':
+          config.maxFrameLatency = Number(value)
+          break
+        case 'dxvk.numCompilerThreads':
+          config.numCompilerThreads = Number(value)
+          break
+        case 'dxvk.hud':
+        case 'DXVK_HUD':
+          config.hud = value.split(',').map(s => s.trim()).filter(s => s.length > 0)
+          break
+        case 'dxgi.customVendorId':
+          config.customVendorId = value
+          break
+        case 'dxgi.customDeviceId':
+          config.customDeviceId = value
+          break
+        case 'DXVK_LOG_LEVEL':
+          config.logLevel = value as any // 'none' | 'error' | 'warn' | 'info' | 'debug'
+          break
+      }
+    }
+  }
+  return config
+}
+
+/**
+ * Read dxvk.conf from game directory
+ */
+export function readConfig(gamePath: string): DxvkConfig | null {
+  const confPath = join(gamePath, 'dxvk.conf')
+
+  if (!existsSync(confPath)) {
+    return null
+  }
+
+  try {
+    const content = readFileSync(confPath, 'utf-8')
+    return parseConfigFile(content)
+  } catch {
+    return null
+  }
+}
+
+/**
  * Generate dxvk.conf content from config object
  */
 export function generateConfigFile(config: DxvkConfig): string {

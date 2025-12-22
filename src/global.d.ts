@@ -30,12 +30,20 @@ declare global {
       openPath: (path: string) => Promise<string>
 
       // Game Discovery
-      scanSteamLibrary: () => Promise<Partial<Game>[]>
+      scanSteamLibrary: () => Promise<Partial<Game>[]> // Deprecated
+      scanAllGames: () => Promise<Partial<Game>[]>
       checkSteamInstalled: () => Promise<boolean>
+      searchMetadata: (term: string) => Promise<number | null>
+      searchMetadataMultiple: (term: string) => Promise<Array<{
+        id: number
+        name: string
+        imageUrl: string
+      }>>
 
       // PE Analysis
       analyzeExecutable: (path: string) => Promise<PEAnalysisResult>
       findExecutables: (gamePath: string) => Promise<string[]>
+      getVersionInfo: (path: string) => Promise<{ ProductName?: string; FileDescription?: string; OriginalFilename?: string }>
 
       // Engines
       getAvailableEngines: (fork: DxvkFork) => Promise<DxvkEngine[]>
@@ -64,6 +72,8 @@ declare global {
       }>
 
       // Config
+      // Config
+      readConfig: (gamePath: string) => Promise<DxvkConfig | null>
       saveConfig: (gamePath: string, config: DxvkConfig) => Promise<{ success: boolean; error?: string }>
 
       // Anti-Cheat
