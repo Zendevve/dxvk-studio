@@ -913,9 +913,8 @@ function GameDetailView({
 
       if (!isCached) {
         setInstallStatus('Downloading DXVK...')
-        // Get available engines to find download URL
-        const engines = await window.electronAPI.getAvailableEngines(selectedFork)
-        const engine = engines.find(e => e.version === selectedVersion)
+        // Use locally cached engines instead of refetching (avoids rate limit issues)
+        const engine = availableEngines.find(e => e.version === selectedVersion)
 
         if (engine) {
           const downloadResult = await window.electronAPI.downloadEngine(selectedFork, selectedVersion, engine.downloadUrl)
@@ -923,7 +922,7 @@ function GameDetailView({
             throw new Error(downloadResult.error || 'Download failed')
           }
         } else {
-          throw new Error('Engine not found')
+          throw new Error(`Engine version ${selectedVersion} not found in available engines`)
         }
       }
 
@@ -1152,8 +1151,8 @@ function GameDetailView({
             {/* Install Status Message */}
             {installStatus && !isInstalling && (
               <p className={`text-sm mt-3 font-medium ${installStatus.startsWith('✓') ? 'text-accent-success' :
-                  installStatus.startsWith('✗') ? 'text-accent-danger' :
-                    'text-studio-400'
+                installStatus.startsWith('✗') ? 'text-accent-danger' :
+                  'text-studio-400'
                 }`}>
                 {installStatus}
               </p>
