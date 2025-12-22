@@ -147,6 +147,51 @@ If no new rule is detected → do not update the file.
 
 ---
 
+## Design System (Apple HIG-Derived)
+
+> **Reference:** See `docs/Design-System.md` for full specification.
+
+### Core Philosophy (ALL UI WORK)
+
+| Principle | Meaning | Application |
+|-----------|---------|-------------|
+| **Clarity** | Immediately understandable | Legible text, precise icons, uncluttered layouts |
+| **Deference** | Content takes priority | UI chrome recedes, contextual controls appear when needed |
+| **Depth** | Visual hierarchy through layering | Shadows, blur, motion communicate structure |
+| **Consistency** | Predictable patterns | Standard components, familiar navigation, platform conventions |
+
+### Visual Rules (MANDATORY)
+
+- **Typography:** Use system fonts (Inter/San Francisco pattern) with semantic text styles
+- **Spacing:** 8-point grid system for all margins, padding, and sizing
+- **Touch targets:** Minimum **44×44px** for all interactive elements
+- **Contrast:** **4.5:1 minimum** for normal text, **3:1** for large text (WCAG AA)
+- **Color semantics:** Red = destructive, Green = success, Blue = primary action, Yellow = warning
+
+### Animation Rules
+
+- **Purposeful only:** Animation must provide feedback, communicate state, or guide attention
+- **Respect Reduced Motion:** Honor `prefers-reduced-motion` system preference
+- **Spring physics:** Use easing curves that feel natural (ease-out for entrances, ease-in for exits)
+- **Duration:** 150–300ms for micro-interactions, 300–500ms for transitions
+
+### Component Standards
+
+- **Buttons:** Always have visible labels (icon-only requires tooltip/aria-label)
+- **Navigation:** Hierarchical for drill-down, tabs for peer sections
+- **Modals:** Use sparingly; prefer inline expansion or slide-overs
+- **Lists:** Provide clear visual separation, consistent row heights
+- **Icons:** SF Symbols style (filled for active, outline for inactive)
+
+### Accessibility (NEVER SKIP)
+
+- All interactive elements must be keyboard navigable
+- All images/icons must have alt text or aria-label
+- Focus states must be visually obvious
+- Color must NEVER be the sole indicator of state
+
+---
+
 ## Preferences
 
 ### Likes

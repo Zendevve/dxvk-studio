@@ -14,7 +14,10 @@ import {
   Heart,
   ExternalLink,
   Trash2,
-  Pencil
+  Pencil,
+  Circle,
+  CircleDot,
+  CircleAlert
 } from 'lucide-react'
 import type { Game, DxvkFork } from './shared/types'
 
@@ -374,7 +377,7 @@ function App() {
                           }
                           setContextMenu(null)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-studio-200 hover:bg-studio-700/50 flex items-center gap-2"
+                        className="w-full px-3 py-3 min-h-[44px] text-left text-sm text-studio-200 hover:bg-studio-700/50 flex items-center gap-2 focus-visible:outline-none focus-visible:bg-studio-700/50"
                       >
                         <FolderOpen className="w-4 h-4" />
                         Open Folder
@@ -384,7 +387,7 @@ function App() {
                           setSelectedGame(contextMenu.game)
                           setContextMenu(null)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-studio-200 hover:bg-studio-700/50 flex items-center gap-2"
+                        className="w-full px-3 py-3 min-h-[44px] text-left text-sm text-studio-200 hover:bg-studio-700/50 flex items-center gap-2 focus-visible:outline-none focus-visible:bg-studio-700/50"
                       >
                         <Gamepad2 className="w-4 h-4" />
                         View Details
@@ -397,7 +400,7 @@ function App() {
                           }
                           setContextMenu(null)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-accent-danger hover:bg-accent-danger/10 flex items-center gap-2"
+                        className="w-full px-3 py-3 min-h-[44px] text-left text-sm text-accent-danger hover:bg-accent-danger/10 flex items-center gap-2 focus-visible:outline-none focus-visible:bg-accent-danger/10"
                       >
                         <Trash2 className="w-4 h-4" />
                         Remove from Library
@@ -788,7 +791,11 @@ function ConfigEditorModal({
       <div className="glass-card max-w-lg w-full mx-4 p-6 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-studio-100">Configure DXVK</h3>
-          <button onClick={onClose} className="text-studio-400 hover:text-studio-200">
+          <button
+            onClick={onClose}
+            className="btn-icon"
+            aria-label="Close dialog"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -952,13 +959,26 @@ function GameCard({
           </span>
         </div>
 
-        {/* Status Indicator */}
+        {/* Status Indicator with Icon Badge (HIG: not color-only) */}
         <div className="absolute bottom-2 left-2 flex items-center gap-2">
-          <span className={`
-            ${game.dxvkStatus === 'active' ? 'status-active' : ''}
-            ${game.dxvkStatus === 'inactive' ? 'status-inactive' : ''}
-            ${game.dxvkStatus === 'outdated' || game.dxvkStatus === 'corrupt' ? 'status-warning' : ''}
-          `} />
+          {game.dxvkStatus === 'active' && (
+            <span className="flex items-center gap-1 text-xs text-white/90 bg-accent-success/80 px-1.5 py-0.5 rounded" title="DXVK Active">
+              <CircleDot className="w-3 h-3" aria-hidden="true" />
+              <span className="sr-only">DXVK Active</span>
+            </span>
+          )}
+          {game.dxvkStatus === 'inactive' && (
+            <span className="flex items-center gap-1 text-xs text-white/70 bg-studio-600/80 px-1.5 py-0.5 rounded" title="DXVK Not Installed">
+              <Circle className="w-3 h-3" aria-hidden="true" />
+              <span className="sr-only">DXVK Not Installed</span>
+            </span>
+          )}
+          {(game.dxvkStatus === 'outdated' || game.dxvkStatus === 'corrupt') && (
+            <span className="flex items-center gap-1 text-xs text-white/90 bg-accent-warning/80 px-1.5 py-0.5 rounded" title="DXVK Needs Attention">
+              <CircleAlert className="w-3 h-3" aria-hidden="true" />
+              <span className="sr-only">DXVK Needs Attention</span>
+            </span>
+          )}
           {game.dxvkVersion && (
             <span className="text-xs text-white/80 bg-black/50 px-1.5 py-0.5 rounded">
               {game.dxvkVersion}
@@ -1181,7 +1201,7 @@ function GameDetailView({
       {/* Back button and header */}
       <button
         onClick={onBack}
-        className="text-studio-400 hover:text-studio-200 text-sm mb-4 flex items-center gap-2"
+        className="text-studio-400 hover:text-studio-200 text-sm mb-4 py-2 px-3 -ml-3 rounded-lg hover:bg-studio-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-vulkan flex items-center gap-2 touch-target"
       >
         ← Back to Games
       </button>
@@ -1247,8 +1267,8 @@ function GameDetailView({
                     <h2 className="text-2xl font-bold text-white">{game.name}</h2>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="p-1.5 bg-studio-800/50 hover:bg-studio-700 rounded-lg text-studio-400 hover:text-studio-200 transition-colors"
-                      title="Rename game"
+                      className="btn-icon-subtle"
+                      aria-label="Rename game"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -1258,8 +1278,8 @@ function GameDetailView({
                         setSearchResults([])
                         setShowSearchModal(true)
                       }}
-                      className="p-1.5 bg-studio-800/50 hover:bg-studio-700 rounded-lg text-studio-400 hover:text-studio-200 transition-colors"
-                      title="Search Steam for cover art"
+                      className="btn-icon-subtle"
+                      aria-label="Search Steam for cover art"
                     >
                       <Search className="w-4 h-4" />
                     </button>
