@@ -11,7 +11,8 @@ import type {
   DeployedDll,
   DxvkFork,
   Architecture,
-  DxvkConfig
+  DxvkConfig,
+  VKD3D_DLLS
 } from '../shared/types'
 import { getEngineDlls } from './engine-manager'
 
@@ -90,14 +91,34 @@ export function getInstalledVersion(gamePath: string): { version: string; fork: 
 /**
  * Check integrity of installed DLLs
  */
-export function checkIntegrity(gamePath: string): 'ok' | 'corrupt' | 'missing' | 'not_installed' {
+export function checkIntegrity(gamePath: string, component?: 'dxvk' | 'vkd3d'): 'ok' | 'corrupt' | 'missing' | 'not_installed' {
   const manifest = readManifest(gamePath)
 
   if (!manifest) {
     return 'not_installed'
   }
 
-  for (const dll of manifest.dlls) {
+  // If component specified, check only its DLLs
+  // If no component, check ALL manifest DLLs
+
+  const vkd3dNames = ['d3d12.dll', 'd3d12core.dll']
+  const isTargetDll = (name: string) => {
+    if (!component) return true
+    if (component === 'vkd3d') return vkd3dNames.includes(name.toLowerCase())
+    return !vkd3dNames.includes(name.toLowerCase())
+  }
+
+  const targetDlls = manifest.dlls.filter(d => isTargetDll(d.name))
+
+  if (component && targetDlls.length === 0) {
+    // Manifest exists but no DLLs for this component -> likely not installed
+    // Check if it's in components list?
+    if (manifest.components && !manifest.components[component]) return 'not_installed'
+    // If in components but no DLLs? weird.
+    return 'not_installed'
+  }
+
+  for (const dll of targetDlls) {
     const dllPath = join(gamePath, dll.name)
 
     if (!existsSync(dllPath)) {
@@ -116,7 +137,10 @@ export function checkIntegrity(gamePath: string): 'ok' | 'corrupt' | 'missing' |
 /**
  * Install DXVK to a game directory
  */
-export function installDxvk(
+/**
+ * Install DXVK/VKD3D to a game directory
+ */
+export function installEngine(
   gamePath: string,
   gameId: string,
   fork: DxvkFork,
@@ -124,16 +148,67 @@ export function installDxvk(
   architecture: Architecture
 ): DeploymentManifest {
   if (architecture === 'unknown') {
-    throw new Error('Cannot install DXVK: unknown architecture')
+    throw new Error('Cannot install engine: unknown architecture')
   }
 
-  // Get DLLs from engine
+  const componentType = fork === 'vkd3d' ? 'vkd3d' : 'dxvk'
   const sourceDlls = getEngineDlls(fork, version, architecture)
 
   if (sourceDlls.length === 0) {
     throw new Error(`No DLLs found for ${fork} ${version} (${architecture}-bit)`)
   }
 
+  // Read existing manifest or create new
+  let manifest = readManifest(gamePath) || {
+    gameId,
+    engineVersion: version, // Legacy compat (will be overwritten if exists, but kept for types)
+    engineFork: fork,       // Legacy compat
+    architecture,
+    installedAt: new Date().toISOString(),
+    dlls: [],
+    components: {}
+  }
+
+  // Migrate legacy manifest if needed
+  if (!manifest.components) {
+    manifest.components = {}
+    // If it was a valid legacy manifest, assume it was DXVK (VKD3D didn't exist)
+    if (manifest.engineVersion && manifest.engineFork) {
+      manifest.components.dxvk = {
+        version: manifest.engineVersion,
+        fork: manifest.engineFork
+      }
+    }
+  }
+
+  // Update component info
+  manifest.components[componentType] = {
+    version,
+    fork
+  }
+
+  // Update legacy top-level fields for backward compatibility (points to last installed)
+  manifest.engineVersion = version
+  manifest.engineFork = fork
+
+  // Filter out OLD DLLs for this component from manifest.dlls
+  // We identify DLLs by name.
+  // VKD3D DLLs: d3d12.dll, d3d12core.dll
+  // DXVK DLLs: d3d9, d3d10*, d3d11, dxgi
+
+  const vkd3dNames = ['d3d12.dll', 'd3d12core.dll']
+
+  // Identify which DLLs belong to the component we are installing
+  // If installing VKD3D, we want to replace/update d3d12*.
+  // If installing DXVK, we want to replace/update d3d9/10/11/dxgi.
+
+  const isTargetDll = (name: string) => {
+    if (componentType === 'vkd3d') return vkd3dNames.includes(name.toLowerCase())
+    return !vkd3dNames.includes(name.toLowerCase()) // Assume everything else is DXVK
+  }
+
+  // Remove existing tracked DLLs for this component from list (we will re-add them)
+  const otherDlls = manifest.dlls.filter(d => !isTargetDll(d.name))
   const deployedDlls: DeployedDll[] = []
 
   for (const sourceDll of sourceDlls) {
@@ -141,17 +216,24 @@ export function installDxvk(
     const targetPath = join(gamePath, dllName)
     const backupPath = join(gamePath, `${dllName}.bak_dxvk_studio`)
 
-    // Backup existing DLL if it exists and isn't already a DXVK DLL
+    // Backup existing DLL if it exists and isn't already a tracked DLL
     if (existsSync(targetPath)) {
-      const manifest = readManifest(gamePath)
-      const isOurDll = manifest?.dlls.some(d => d.name === dllName)
+      const isTracked = manifest.dlls.some(d => d.name === dllName)
 
-      if (!isOurDll) {
+      // If it's not tracked, back it up.
+      // If it IS tracked but belongs to this component (which we are updating), we technically don't need to re-backup if we already have one?
+      // But simpler to ensure backup exists.
+
+      if (!existsSync(backupPath) && !isTracked) {
         renameSync(targetPath, backupPath)
+      } else if (isTracked) {
+        // It's already ours, we are overwriting it. We trust the existing backup if any.
+        // Pass
       }
     }
 
     // Copy new DLL
+    // Using copyFileSync overwrites
     copyFileSync(sourceDll, targetPath)
 
     deployedDlls.push({
@@ -161,15 +243,9 @@ export function installDxvk(
     })
   }
 
-  // Create manifest
-  const manifest: DeploymentManifest = {
-    gameId,
-    engineVersion: version,
-    engineFork: fork,
-    architecture,
-    installedAt: new Date().toISOString(),
-    dlls: deployedDlls
-  }
+  // Update manifest DLLs
+  manifest.dlls = [...otherDlls, ...deployedDlls]
+  manifest.installedAt = new Date().toISOString() // Update timestamp
 
   writeManifest(gamePath, manifest)
 
@@ -179,19 +255,32 @@ export function installDxvk(
 /**
  * Uninstall DXVK from a game directory
  */
-export function uninstallDxvk(gamePath: string): boolean {
+/**
+ * Uninstall engine from a game directory
+ */
+export function uninstallEngine(gamePath: string, component?: 'dxvk' | 'vkd3d'): boolean {
   const manifest = readManifest(gamePath)
 
   if (!manifest) {
     return false
   }
 
+  const vkd3dNames = ['d3d12.dll', 'd3d12core.dll']
+  const isTargetDll = (name: string) => {
+    if (!component) return true
+    if (component === 'vkd3d') return vkd3dNames.includes(name.toLowerCase())
+    return !vkd3dNames.includes(name.toLowerCase())
+  }
+
+  const dllsToRemove = manifest.dlls.filter(d => isTargetDll(d.name))
+  const dllsToKeep = manifest.dlls.filter(d => !isTargetDll(d.name))
+
   // Remove DLLs and restore backups
-  for (const dll of manifest.dlls) {
+  for (const dll of dllsToRemove) {
     const dllPath = join(gamePath, dll.name)
     const backupPath = dll.backupPath
 
-    // Remove DXVK DLL
+    // Remove DLL
     if (existsSync(dllPath)) {
       rmSync(dllPath)
     }
@@ -202,44 +291,57 @@ export function uninstallDxvk(gamePath: string): boolean {
     }
   }
 
-  // Remove dxvk.conf if we created it
-  const confPath = join(gamePath, 'dxvk.conf')
-  if (existsSync(confPath) && manifest.configPath === confPath) {
-    rmSync(confPath)
-  }
+  // Handle manifest updates
+  if (component && manifest.components) {
+    delete manifest.components[component]
 
-  // Remove manifest
-  rmSync(getManifestPath(gamePath))
+    // If we removed the last component, or if we removed headers?
+    // Determine if anything is left.
+    if (Object.keys(manifest.components).length === 0) {
+      // All gone
+      // Remove dxvk.conf if we created it (and if we are uninstalling everything?)
+      // Note: config usually shared. If we uninstall one, we might keep config?
+      // If all components gone, remove config.
+      const confPath = join(gamePath, 'dxvk.conf')
+      if (existsSync(confPath) && manifest.configPath === confPath) {
+        rmSync(confPath)
+      }
+      rmSync(getManifestPath(gamePath))
+    } else {
+      // Still some components left
+      manifest.dlls = dllsToKeep
+      // Update legacy fields if we removed the one it pointed to?
+      // Just leave them or clear them?
+      // If we removed what engineVersion pointed to, it might be misleading.
+      // But engineVersion points to *last installed*.
+      // Let's just update timestamp.
+      manifest.installedAt = new Date().toISOString()
+      writeManifest(gamePath, manifest)
+    }
+  } else {
+    // Uninstalling everything
+    const confPath = join(gamePath, 'dxvk.conf')
+    if (existsSync(confPath) && manifest.configPath === confPath) {
+      rmSync(confPath)
+    }
+    rmSync(getManifestPath(gamePath))
+  }
 
   return true
 }
 
 /**
- * Update DXVK to a new version
+ * Update engine to a new version
  */
-export function updateDxvk(
+export function updateEngine(
   gamePath: string,
   gameId: string,
   newFork: DxvkFork,
   newVersion: string,
   architecture: Architecture
 ): DeploymentManifest {
-  // First uninstall (but keep backups)
-  const oldManifest = readManifest(gamePath)
-
-  if (oldManifest) {
-    // Only remove DLLs, not backups
-    for (const dll of oldManifest.dlls) {
-      const dllPath = join(gamePath, dll.name)
-      if (existsSync(dllPath)) {
-        rmSync(dllPath)
-      }
-    }
-    rmSync(getManifestPath(gamePath))
-  }
-
-  // Install new version
-  return installDxvk(gamePath, gameId, newFork, newVersion, architecture)
+  // Just reinstall/overwrite
+  return installEngine(gamePath, gameId, newFork, newVersion, architecture)
 }
 
 /**

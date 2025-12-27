@@ -16,17 +16,19 @@ import {
   deleteEngine
 } from './services/engine-manager'
 import {
-  installDxvk,
-  uninstallDxvk,
+  installEngine,
+  uninstallEngine,
+  updateEngine,
   isDxvkInstalled,
   getInstalledVersion,
   checkIntegrity,
   writeConfig,
-  readConfig
+  readConfig,
+  readManifest
 } from './services/deployer'
 import { detectAntiCheat, getAntiCheatSummary } from './services/anti-cheat'
 import { getAllProfiles, saveProfile, deleteProfile } from './services/profile-manager'
-import type { Game, DxvkFork, DxvkConfig, DxvkProfile } from '../src/shared/types'
+import type { Game, DxvkFork, DxvkConfig, DxvkProfile, DxvkStatus } from '../src/shared/types'
 
 // ============================================
 // Build Paths
@@ -186,36 +188,6 @@ ipcMain.handle('games:scanAll', async () => {
     const gogGames = await findGogGames()
     const epicGames = findEpicGames()
 
-    // Helper to analyze a game
-    const analyze = (gamePath: string, mainExe: string) => {
-      const exePath = mainExe ? join(gamePath, mainExe) : ''
-
-      // Detect architecture
-      let architecture: '32' | '64' | 'unknown' = 'unknown'
-      if (exePath && existsSync(exePath)) {
-        const analysis = analyzeExecutable(exePath)
-        architecture = analysis.architecture
-      }
-
-      // Check DXVK status
-      let dxvkStatus: 'active' | 'inactive' | 'outdated' | 'corrupt' = 'inactive'
-      let dxvkVersion: string | undefined
-      let dxvkFork: DxvkFork | undefined
-
-      if (isDxvkInstalled(gamePath)) {
-        const installed = getInstalledVersion(gamePath)
-        const integrity = checkIntegrity(gamePath)
-
-        if (installed) {
-          dxvkVersion = installed.version
-          dxvkFork = installed.fork
-        }
-        dxvkStatus = integrity === 'ok' ? 'active' : integrity as any
-      }
-
-      return { architecture, dxvkStatus, dxvkVersion, dxvkFork }
-    }
-
     // Process Steam Apps
     const processedSteam = await Promise.all(
       steamApps.map(async (app) => {
@@ -234,6 +206,9 @@ ipcMain.handle('games:scanAll', async () => {
           dxvkStatus: analysis.dxvkStatus,
           dxvkVersion: analysis.dxvkVersion,
           dxvkFork: analysis.dxvkFork,
+          vkd3dStatus: analysis.vkd3dStatus,
+          vkd3dVersion: analysis.vkd3dVersion,
+          vkd3dFork: analysis.vkd3dFork,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         } as Game
@@ -247,12 +222,15 @@ ipcMain.handle('games:scanAll', async () => {
         const analysis = analyze(game.path, mainExe)
 
         return {
-          ...game, // Already has id, name, path
+          ...game,
           executable: mainExe,
           architecture: analysis.architecture,
           dxvkStatus: analysis.dxvkStatus,
           dxvkVersion: analysis.dxvkVersion,
-          dxvkFork: analysis.dxvkFork
+          dxvkFork: analysis.dxvkFork,
+          vkd3dStatus: analysis.vkd3dStatus,
+          vkd3dVersion: analysis.vkd3dVersion,
+          vkd3dFork: analysis.vkd3dFork
         } as Game
       })
     )
@@ -269,7 +247,10 @@ ipcMain.handle('games:scanAll', async () => {
           architecture: analysis.architecture,
           dxvkStatus: analysis.dxvkStatus,
           dxvkVersion: analysis.dxvkVersion,
-          dxvkFork: analysis.dxvkFork
+          dxvkFork: analysis.dxvkFork,
+          vkd3dStatus: analysis.vkd3dStatus,
+          vkd3dVersion: analysis.vkd3dVersion,
+          vkd3dFork: analysis.vkd3dFork
         } as Game
       })
     )
@@ -280,6 +261,73 @@ ipcMain.handle('games:scanAll', async () => {
     return []
   }
 })
+
+function analyze(gamePath: string, mainExe: string) {
+  const exePath = mainExe ? join(gamePath, mainExe) : join(gamePath, 'unknown.exe') // fallback
+  let architecture: '32' | '64' | 'unknown' = 'unknown'
+
+  if (mainExe && existsSync(exePath)) {
+    architecture = analyzeExecutable(exePath).architecture
+  }
+
+  const manifest = readManifest(gamePath)
+
+  // DXVK Status
+  let dxvkStatus: DxvkStatus = 'inactive'
+  let dxvkVersion = undefined
+  let dxvkFork: DxvkFork | undefined = undefined
+
+  // VKD3D Status
+  let vkd3dStatus: DxvkStatus = 'inactive'
+  let vkd3dVersion = undefined
+  let vkd3dFork: DxvkFork | undefined = undefined
+
+  if (manifest) {
+    // Check DXVK
+    if (manifest.components?.dxvk) {
+      dxvkVersion = manifest.components.dxvk.version
+      dxvkFork = manifest.components.dxvk.fork
+
+      const integrity = checkIntegrity(gamePath, 'dxvk')
+      if (integrity === 'ok') dxvkStatus = 'active'
+      else if (integrity === 'corrupt') dxvkStatus = 'corrupt'
+      else if (integrity === 'missing') dxvkStatus = 'inactive'
+    } else if (manifest.engineVersion && manifest.engineFork !== 'vkd3d') {
+      // Legacy/Fallback for pure DXVK manifest
+      dxvkVersion = manifest.engineVersion
+      dxvkFork = manifest.engineFork
+      const integrity = checkIntegrity(gamePath) // check all
+      dxvkStatus = integrity === 'ok' ? 'active' : (integrity === 'corrupt' ? 'corrupt' : 'inactive')
+    }
+
+    // Check VKD3D
+    if (manifest.components?.vkd3d) {
+      vkd3dVersion = manifest.components.vkd3d.version
+      vkd3dFork = manifest.components.vkd3d.fork
+
+      const integrity = checkIntegrity(gamePath, 'vkd3d')
+      if (integrity === 'ok') vkd3dStatus = 'active'
+      else if (integrity === 'corrupt') vkd3dStatus = 'corrupt'
+      else if (integrity === 'missing') vkd3dStatus = 'inactive'
+    } else if (manifest.engineFork === 'vkd3d') {
+      // Fallback if top level is vkd3d
+      vkd3dVersion = manifest.engineVersion
+      vkd3dFork = manifest.engineFork
+      const integrity = checkIntegrity(gamePath)
+      vkd3dStatus = integrity === 'ok' ? 'active' : 'inactive'
+    }
+  }
+
+  return {
+    architecture,
+    dxvkStatus,
+    dxvkVersion,
+    dxvkFork,
+    vkd3dStatus,
+    vkd3dVersion,
+    vkd3dFork
+  }
+}
 
 ipcMain.handle('games:searchMetadata', async (_, term: string) => {
   return searchSteamStore(term)
@@ -366,18 +414,35 @@ ipcMain.handle('dxvk:install', async (
 ) => {
   if (!isValidGamePath(gamePath)) return { success: false, error: 'Invalid game path' }
   try {
-    const manifest = installDxvk(gamePath, gameId, fork, version, architecture)
+    const manifest = installEngine(gamePath, gameId, fork, version, architecture)
     return { success: true, manifest }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
 })
 
-ipcMain.handle('dxvk:uninstall', async (_, gamePath: string) => {
+ipcMain.handle('dxvk:update', async (
+  _,
+  gamePath: string,
+  gameId: string,
+  newFork: DxvkFork,
+  newVersion: string,
+  architecture: '32' | '64'
+) => {
   if (!isValidGamePath(gamePath)) return { success: false, error: 'Invalid game path' }
   try {
-    const result = uninstallDxvk(gamePath)
-    return { success: result }
+    const manifest = updateEngine(gamePath, gameId, newFork, newVersion, architecture)
+    return { success: true, manifest }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+ipcMain.handle('dxvk:uninstall', async (_, gamePath: string, component?: 'dxvk' | 'vkd3d') => {
+  if (!isValidGamePath(gamePath)) return { success: false, error: 'Invalid game path' }
+  try {
+    const success = await uninstallEngine(gamePath, component)
+    return { success }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }

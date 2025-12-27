@@ -66,7 +66,7 @@ declare global {
       // Deployment
       installDxvk: (gamePath: string, gameId: string, fork: DxvkFork, version: string, architecture: '32' | '64') =>
         Promise<{ success: boolean; manifest?: unknown; error?: string }>
-      uninstallDxvk: (gamePath: string) => Promise<{ success: boolean; error?: string }>
+      uninstallDxvk: (gamePath: string, component?: 'dxvk' | 'vkd3d') => Promise<{ success: boolean; error?: string }>
       checkDxvkStatus: (gamePath: string) => Promise<{
         installed: boolean
         version?: string

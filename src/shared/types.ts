@@ -13,6 +13,11 @@ export interface Game {
   dxvkStatus: DxvkStatus
   dxvkVersion?: string
   dxvkFork?: DxvkFork
+
+  vkd3dStatus: DxvkStatus
+  vkd3dVersion?: string
+  vkd3dFork?: DxvkFork
+
   lastPlayed?: Date | string
   createdAt: Date | string
   updatedAt: Date | string
@@ -21,7 +26,7 @@ export interface Game {
 export type Architecture = '32' | '64' | 'unknown'
 export type Platform = 'steam' | 'manual' | 'gog' | 'epic'
 export type DxvkStatus = 'active' | 'inactive' | 'outdated' | 'corrupt'
-export type DxvkFork = 'official' | 'gplasync' | 'nvapi'
+export type DxvkFork = 'official' | 'gplasync' | 'nvapi' | 'vkd3d'
 
 // ============================================
 // DXVK Engine Types
@@ -177,10 +182,24 @@ export interface DeploymentManifest {
   installedAt: string
   dlls: DeployedDll[]
   configPath?: string
+  components?: {
+    dxvk?: {
+      version: string
+      fork: DxvkFork
+    }
+    vkd3d?: {
+      version: string
+      fork: DxvkFork
+    }
+  }
 }
 
 export interface DeployedDll {
   name: string
   hash: string
   backupPath?: string
+}
+
+export const VKD3D_DLLS = {
+  d3d12: ['d3d12.dll', 'd3d12core.dll']
 }

@@ -228,6 +228,7 @@ function App() {
         platform: 'manual',
         steamAppId: steamId ? steamId.toString() : undefined, // Add Steam ID if found
         dxvkStatus: 'inactive',
+        vkd3dStatus: 'inactive',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -688,7 +689,8 @@ function EngineManagerView() {
   const forkLabels: Record<DxvkFork, string> = {
     official: 'Official (doitsujin)',
     gplasync: 'GPL Async (Ph42oN)',
-    nvapi: 'NVAPI (jp7677)'
+    nvapi: 'NVAPI (jp7677)',
+    vkd3d: 'Proton (HansKristian)'
   }
 
 
@@ -754,6 +756,7 @@ function EngineManagerView() {
               <option value="official">Official (doitsujin)</option>
               <option value="gplasync">GPL Async (Ph42oN)</option>
               <option value="nvapi">NVAPI (jp7677)</option>
+              <option value="vkd3d">Proton (HansKristian)</option>
             </select>
             <button
               onClick={fetchAvailable}
@@ -813,7 +816,7 @@ function EngineManagerView() {
             </div>
           ) : (
             <div className="space-y-6">
-              {(['official', 'gplasync', 'nvapi'] as DxvkFork[]).map(fork => {
+              {(['official', 'gplasync', 'nvapi', 'vkd3d'] as DxvkFork[]).map(fork => {
                 const engines = groupedCached[fork]
                 if (!engines || engines.length === 0) return null
 
@@ -1014,7 +1017,8 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
   const forkLabels: Record<DxvkFork, string> = {
     official: 'Official (doitsujin)',
     gplasync: 'GPL Async (Ph42oN)',
-    nvapi: 'NVAPI (jp7677)'
+    nvapi: 'NVAPI (jp7677)',
+    vkd3d: 'VKD3D-Proton (HansKristian)'
   }
 
   return (
@@ -1438,6 +1442,311 @@ function GameCard({
   )
 }
 
+// Engine Management Card Component
+function EngineManagementCard({
+  game,
+  type,
+  onUpdate,
+  isElectron,
+  installDisabled = false
+}: {
+  game: Game
+  type: 'dxvk' | 'vkd3d'
+  onUpdate: (game: Game) => void
+  isElectron: boolean
+  installDisabled?: boolean
+}) {
+  const [isInstalling, setIsInstalling] = useState(false)
+  const [installStatus, setInstallStatus] = useState('')
+  const [selectedFork, setSelectedFork] = useState<DxvkFork>(
+    type === 'vkd3d' ? 'vkd3d' : (game.dxvkFork && game.dxvkFork !== 'vkd3d' ? game.dxvkFork : 'official')
+  )
+  const [selectedVersion, setSelectedVersion] = useState('')
+  const [availableEngines, setAvailableEngines] = useState<Array<{
+    version: string
+    cached: boolean
+    downloadUrl: string
+    releaseDate?: string
+    changelog?: string
+  }>>([])
+  const [isLoadingEngines, setIsLoadingEngines] = useState(false)
+
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [isPredownloading, setIsPredownloading] = useState(false)
+
+  // Status and version from game object based on type
+  const isActive = type === 'dxvk' ? game.dxvkStatus === 'active' : game.vkd3dStatus === 'active'
+
+
+  // Fetch available engines
+  useEffect(() => {
+    if (!isElectron) return
+    const fetchEngines = async () => {
+      setIsLoadingEngines(true)
+      try {
+        const engines = await window.electronAPI.getAvailableEngines(selectedFork)
+        setAvailableEngines(engines.map((e: any) => ({
+          version: e.version,
+          cached: e.cached,
+          downloadUrl: e.downloadUrl,
+          releaseDate: e.releaseDate,
+          changelog: e.changelog
+        })))
+        if (engines.length > 0) setSelectedVersion(engines[0].version)
+        else setSelectedVersion('')
+      } catch (error) {
+        console.error('Failed to fetch engines:', error)
+        setAvailableEngines([])
+      } finally {
+        setIsLoadingEngines(false)
+      }
+    }
+    fetchEngines()
+  }, [selectedFork, isElectron])
+
+  const handleInstall = async () => {
+    if (!isElectron || game.architecture === 'unknown') return
+    setIsInstalling(true)
+    setInstallStatus('Checking cache...')
+
+    try {
+      const isCached = await window.electronAPI.isEngineCached(selectedFork, selectedVersion)
+      if (!isCached) {
+        setInstallStatus(`Downloading ${type.toUpperCase()}...`)
+        const engine = availableEngines.find(e => e.version === selectedVersion)
+        if (engine) {
+          const downloadResult = await window.electronAPI.downloadEngine(selectedFork, selectedVersion, engine.downloadUrl)
+          if (!downloadResult.success) throw new Error(downloadResult.error || 'Download failed')
+        } else {
+          throw new Error('Version not found')
+        }
+      }
+
+      setInstallStatus('Installing DLLs...')
+      const result = await window.electronAPI.installDxvk(
+        game.path,
+        game.id,
+        selectedFork,
+        selectedVersion,
+        game.architecture
+      )
+
+      if (result.success) {
+        // Construct updated game object from manifest if possible?
+        // For now, manually update local state to reflect success
+        const updates: Partial<Game> = {}
+        if (type === 'dxvk') {
+          updates.dxvkStatus = 'active'
+          updates.dxvkVersion = selectedVersion
+          updates.dxvkFork = selectedFork
+        } else {
+          updates.vkd3dStatus = 'active'
+          updates.vkd3dVersion = selectedVersion
+          updates.vkd3dFork = selectedFork
+        }
+
+        onUpdate({ ...game, ...updates })
+        setInstallStatus('✓ Installed successfully!')
+        setTimeout(() => setInstallStatus(''), 3000)
+        addLogEntry('info', `${type.toUpperCase()} ${selectedFork} v${selectedVersion} installed`, `Game: ${game.name}`)
+      } else {
+        throw new Error(result.error || 'Installation failed')
+      }
+    } catch (error) {
+      console.error('Install failed:', error)
+      setInstallStatus(`✗ ${(error as Error).message}`)
+      addLogEntry('error', `${type.toUpperCase()} install failed`, String(error))
+      setTimeout(() => setInstallStatus(''), 5000)
+    } finally {
+      setIsInstalling(false)
+    }
+  }
+
+  const handleUninstall = async () => {
+    if (!isElectron) return
+    setIsInstalling(true)
+    try {
+      // Use the newly supported 'component' parameter if available or fallback
+      // Assuming frontend wrapper sends args correctly to backend uninstallEngine(path, component)
+      // Note: Backend ipc 'dxvk:uninstall' currently takes only gamePath.
+      // I need to update IPC handler 'dxvk:uninstall' (which calls backend uninstallEngine) to support component?
+      // Actually backend ipc 'dxvk:uninstall' calls `uninstallEngine(gamePath)`.
+      // I need to update frontend electronAPI to support component first?
+      // OR I can't support component specific uninstall from frontend yet without IPC update.
+      // Wait, I updated IPC 'dxvk:uninstall' to call `uninstallEngine(gamePath)` without args?
+      // No, `uninstallEngine` takes optional component.
+      // I need to update IPC `dxvk:uninstall` to accept component.
+
+      // Let's assume IPC update is incoming or I'll do it.
+      // For now, send gamePath.
+
+      const result = await window.electronAPI.uninstallDxvk(game.path, type) // Pass type to IPC
+
+      if (result.success) {
+        const updates: Partial<Game> = {}
+        if (type === 'dxvk') {
+          updates.dxvkStatus = 'inactive'
+          updates.dxvkVersion = undefined
+          updates.dxvkFork = undefined
+        } else {
+          updates.vkd3dStatus = 'inactive'
+          updates.vkd3dVersion = undefined
+          updates.vkd3dFork = undefined
+        }
+        onUpdate({ ...game, ...updates })
+        addLogEntry('info', `${type.toUpperCase()} uninstalled`, `Game: ${game.name}`)
+      }
+    } catch (error) {
+      console.error(error)
+      addLogEntry('error', 'Uninstall failed', String(error))
+    } finally {
+      setIsInstalling(false)
+    }
+  }
+
+  const handlePreDownload = async () => {
+    if (!isElectron || isPredownloading) return
+    setIsPredownloading(true)
+    setDownloadProgress(0)
+
+    const engine = availableEngines.find(e => e.version === selectedVersion)
+    if (!engine) return
+
+    const handleProgress = (p: any) => {
+      if (p.fork === selectedFork && p.version === selectedVersion) {
+        setDownloadProgress(p.percent)
+      }
+    }
+    window.electronAPI.onDownloadProgress(handleProgress)
+
+    try {
+      const res = await window.electronAPI.downloadEngine(selectedFork, selectedVersion, engine.downloadUrl)
+      if (res.success) {
+        setAvailableEngines(prev => prev.map(e => e.version === selectedVersion ? { ...e, cached: true } : e))
+        addLogEntry('info', `Downloaded ${selectedFork} v${selectedVersion}`)
+      }
+    } catch (e) {
+      addLogEntry('error', 'Download failed', String(e))
+    } finally {
+      setIsPredownloading(false)
+      window.electronAPI.removeDownloadProgressListener()
+    }
+  }
+
+  const handleClearCache = async () => {
+    if (!window.confirm(`Delete cached ${selectedFork} v${selectedVersion}?`)) return
+    await window.electronAPI.deleteEngine(selectedFork, selectedVersion)
+    setAvailableEngines(prev => prev.map(e => e.version === selectedVersion ? { ...e, cached: false } : e))
+  }
+
+  return (
+    <div className="glass-card p-6">
+      <h3 className="text-lg font-semibold text-studio-200 mb-4">{type === 'dxvk' ? 'DXVK' : 'VKD3D'} Management</h3>
+
+      {type === 'vkd3d' && (
+        <div className="mb-6 p-4 rounded-lg bg-studio-800/50 border border-studio-700 flex items-start gap-3">
+          <Info className="w-5 h-5 text-studio-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-studio-400">
+            <p className="font-medium text-studio-300 mb-1">Note regarding VKD3D on Windows</p>
+            VKD3D translates Direct3D 12 to Vulkan. On Windows 10/11, native D3D12 is usually faster.
+            This is primarily useful for developers or legacy operating systems.
+          </div>
+        </div>
+      )}
+
+      {/* Fork/Version Selection */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="block text-sm text-studio-400 mb-2">Fork</label>
+          <select
+            value={selectedFork}
+            onChange={(e) => setSelectedFork(e.target.value as DxvkFork)}
+            className="input-field"
+            disabled={isActive || type === 'vkd3d'} // VKD3D only has one fork currently
+          >
+            {type === 'dxvk' ? (
+              <>
+                <option value="official">Official (doitsujin)</option>
+                <option value="gplasync">GPL Async (Ph42oN)</option>
+                <option value="nvapi">NVAPI (jp7677)</option>
+              </>
+            ) : (
+              <option value="vkd3d">Proton (HansKristian)</option>
+            )}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm text-studio-400 mb-2">Version</label>
+          <select
+            value={selectedVersion}
+            onChange={(e) => setSelectedVersion(e.target.value)}
+            className="input-field"
+            disabled={isActive || isLoadingEngines}
+          >
+            {isLoadingEngines ? <option>Loading...</option> :
+              availableEngines.length === 0 ? <option>No versions</option> :
+                availableEngines.map(e => (
+                  <option key={e.version} value={e.version}>
+                    {e.version}{e.cached ? ' ✓' : ''}
+                  </option>
+                ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Cache/Predownload Controls (Simplified) */}
+      {selectedVersion && availableEngines.find(e => e.version === selectedVersion) && (
+        <div className="mb-6 p-4 rounded-lg bg-studio-800/50 border border-studio-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-accent-glow font-mono">v{selectedVersion}</span>
+              {availableEngines.find(e => e.version === selectedVersion)?.cached ?
+                <span className="text-xs bg-accent-success/20 text-accent-success px-1.5 py-0.5 rounded">Cached</span> :
+                <span className="text-xs bg-studio-700 text-studio-400 px-1.5 py-0.5 rounded">Not Cached</span>
+              }
+            </div>
+            {!isActive && (
+              <div className="flex gap-2">
+                {!availableEngines.find(e => e.version === selectedVersion)?.cached && (
+                  <button onClick={handlePreDownload} disabled={isPredownloading} className="btn-secondary text-xs">
+                    {isPredownloading ? `${downloadProgress}%` : <Download className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+                {availableEngines.find(e => e.version === selectedVersion)?.cached && (
+                  <button onClick={handleClearCache} className="btn-secondary text-xs text-accent-danger">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        {isActive ? (
+          <button onClick={handleUninstall} disabled={isInstalling} className="btn-secondary flex items-center gap-2">
+            {isInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+            Uninstall
+          </button>
+        ) : (
+          <button
+            onClick={handleInstall}
+            disabled={isInstalling || installDisabled || game.architecture === 'unknown' || !selectedVersion}
+            className="btn-primary flex items-center gap-2"
+          >
+            {isInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Install
+          </button>
+        )}
+      </div>
+
+      {installStatus && <p className="text-sm mt-3 text-studio-300">{installStatus}</p>}
+    </div>
+  )
+}
+
 // Game Detail View Component
 function GameDetailView({
   game,
@@ -1451,20 +1760,6 @@ function GameDetailView({
   onRemove: () => void
 }) {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
-  const [isInstalling, setIsInstalling] = useState(false)
-  const [installStatus, setInstallStatus] = useState('')
-  const [selectedFork, setSelectedFork] = useState<DxvkFork>('official')
-  const [selectedVersion, setSelectedVersion] = useState('')
-  const [availableEngines, setAvailableEngines] = useState<Array<{
-    version: string
-    cached: boolean
-    downloadUrl: string
-    releaseDate?: string
-    changelog?: string
-  }>>([])
-  const [isLoadingEngines, setIsLoadingEngines] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState(0)
-  const [isPredownloading, setIsPredownloading] = useState(false)
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
@@ -1475,6 +1770,15 @@ function GameDetailView({
   const [searchTerm, setSearchTerm] = useState(game.name)
   const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; imageUrl: string }>>([])
   const [isSearching, setIsSearching] = useState(false)
+
+  // Anti-cheat detection state
+  const [antiCheatWarning, setAntiCheatWarning] = useState<{
+    hasAntiCheat: boolean
+    highRisk: boolean
+    detected: string[]
+  } | null>(null)
+  const [showAntiCheatOverride, setShowAntiCheatOverride] = useState(false)
+  const [showConfigModal, setShowConfigModal] = useState(false)
 
   // Debounced live search
   useEffect(() => {
@@ -1493,20 +1797,9 @@ function GameDetailView({
     return () => clearTimeout(timer)
   }, [searchTerm, showSearchModal])
 
-  // Anti-cheat detection state
-  const [antiCheatWarning, setAntiCheatWarning] = useState<{
-    hasAntiCheat: boolean
-    highRisk: boolean
-    detected: string[]
-  } | null>(null)
-  const [showAntiCheatOverride, setShowAntiCheatOverride] = useState(false)
-  const [showConfigModal, setShowConfigModal] = useState(false)
-
-
   // Scan for anti-cheat on mount
   useEffect(() => {
     if (!isElectron) return
-
     const checkAntiCheat = async () => {
       try {
         const summary = await window.electronAPI.getAntiCheatSummary(game.path)
@@ -1515,128 +1808,12 @@ function GameDetailView({
         console.error('Failed to check anti-cheat:', error)
       }
     }
-
     checkAntiCheat()
   }, [game.path])
-
-  // Fetch available engines when fork changes
-  useEffect(() => {
-    if (!isElectron) return
-
-    const fetchEngines = async () => {
-      setIsLoadingEngines(true)
-      try {
-        const engines = await window.electronAPI.getAvailableEngines(selectedFork)
-        setAvailableEngines(engines.map((e: { version: string; cached: boolean; downloadUrl: string; releaseDate?: string; changelog?: string }) => ({
-          version: e.version,
-          cached: e.cached,
-          downloadUrl: e.downloadUrl,
-          releaseDate: e.releaseDate,
-          changelog: e.changelog
-        })))
-        // Always select first version when fork changes (reset stale selection)
-        if (engines.length > 0) {
-          setSelectedVersion(engines[0].version)
-        } else {
-          setSelectedVersion('')
-        }
-      } catch (error) {
-        console.error('Failed to fetch engines:', error)
-        setAvailableEngines([])
-      } finally {
-        setIsLoadingEngines(false)
-      }
-    }
-
-    fetchEngines()
-  }, [selectedFork])
 
   const steamIconUrl = game.steamAppId
     ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`
     : null
-
-  const handleInstall = async () => {
-    if (!isElectron || game.architecture === 'unknown') return
-
-    setIsInstalling(true)
-    setInstallStatus('Checking cache...')
-
-    try {
-      // Check if version is cached, if not download it
-      const isCached = await window.electronAPI.isEngineCached(selectedFork, selectedVersion)
-
-      if (!isCached) {
-        setInstallStatus('Downloading DXVK...')
-        // Use locally cached engines instead of refetching (avoids rate limit issues)
-        const engine = availableEngines.find(e => e.version === selectedVersion)
-
-        if (engine) {
-          const downloadResult = await window.electronAPI.downloadEngine(selectedFork, selectedVersion, engine.downloadUrl)
-          if (!downloadResult.success) {
-            throw new Error(downloadResult.error || 'Download failed')
-          }
-        } else {
-          throw new Error(`Engine version ${selectedVersion} not found in available engines`)
-        }
-      }
-
-      setInstallStatus('Installing DLLs...')
-
-      // Install DXVK
-      const result = await window.electronAPI.installDxvk(
-        game.path,
-        game.id,
-        selectedFork,
-        selectedVersion,
-        game.architecture
-      )
-
-      if (result.success) {
-        onUpdate({
-          ...game,
-          dxvkStatus: 'active',
-          dxvkVersion: selectedVersion,
-          dxvkFork: selectedFork
-        })
-        setInstallStatus('✓ Installed successfully!')
-        addLogEntry('info', `DXVK ${selectedFork} v${selectedVersion} installed`, `Game: ${game.name}`)
-        setTimeout(() => setInstallStatus(''), 3000)
-      } else {
-        throw new Error(result.error || 'Installation failed')
-      }
-    } catch (error) {
-      console.error('Install failed:', error)
-      addLogEntry('error', `DXVK installation failed for ${game.name}`, String(error))
-      setInstallStatus(`✗ ${(error as Error).message}`)
-      setTimeout(() => setInstallStatus(''), 5000)
-    } finally {
-      setIsInstalling(false)
-    }
-  }
-
-  const handleUninstall = async () => {
-    if (!isElectron) return
-
-    setIsInstalling(true)
-    try {
-      const result = await window.electronAPI.uninstallDxvk(game.path)
-
-      if (result.success) {
-        onUpdate({
-          ...game,
-          dxvkStatus: 'inactive',
-          dxvkVersion: undefined,
-          dxvkFork: undefined
-        })
-        addLogEntry('info', `DXVK uninstalled from ${game.name}`)
-      }
-    } catch (error) {
-      console.error('Uninstall failed:', error)
-      addLogEntry('error', `DXVK uninstall failed for ${game.name}`, String(error))
-    } finally {
-      setIsInstalling(false)
-    }
-  }
 
   const handleOpenFolder = async () => {
     if (isElectron) {
@@ -1644,9 +1821,11 @@ function GameDetailView({
     }
   }
 
+  // Determine if installation should be disabled due to anti-cheat
+  const installDisabled = antiCheatWarning?.highRisk && !showAntiCheatOverride
+
   return (
     <div className="animate-fade-in">
-      {/* Back button and header */}
       <button
         onClick={onBack}
         className="text-studio-400 hover:text-studio-200 text-sm mb-4 py-2 px-3 -ml-3 rounded-lg hover:bg-studio-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-vulkan flex items-center gap-2 touch-target"
@@ -1655,17 +1834,11 @@ function GameDetailView({
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column - Game info */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Header card */}
           <div className="glass-card overflow-hidden">
             <div className="relative h-48">
               {steamIconUrl ? (
-                <img
-                  src={steamIconUrl}
-                  alt={game.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={steamIconUrl} alt={game.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-studio-800 flex items-center justify-center">
                   <Gamepad2 className="w-20 h-20 text-studio-600" />
@@ -1691,44 +1864,20 @@ function GameDetailView({
                         }
                       }}
                     />
-                    <button
-                      onClick={() => {
-                        onUpdate({ ...game, name: editName, updatedAt: new Date().toISOString() })
-                        setIsEditing(false)
-                      }}
-                      className="p-2 bg-accent-success/20 hover:bg-accent-success/30 rounded-lg text-accent-success"
-                    >
+                    <button onClick={() => { onUpdate({ ...game, name: editName, updatedAt: new Date().toISOString() }); setIsEditing(false) }} className="p-2 bg-accent-success/20 hover:bg-accent-success/30 rounded-lg text-accent-success">
                       <Check className="w-5 h-5" />
                     </button>
-                    <button
-                      onClick={() => {
-                        setEditName(game.name)
-                        setIsEditing(false)
-                      }}
-                      className="p-2 bg-studio-700/50 hover:bg-studio-700 rounded-lg text-studio-300"
-                    >
+                    <button onClick={() => { setEditName(game.name); setIsEditing(false) }} className="p-2 bg-studio-700/50 hover:bg-studio-700 rounded-lg text-studio-300">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-bold text-white">{game.name}</h2>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="btn-icon-subtle"
-                      aria-label="Rename game"
-                    >
+                    <button onClick={() => setIsEditing(true)} className="btn-icon-subtle" aria-label="Rename game">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => {
-                        setSearchTerm(game.name)
-                        setSearchResults([])
-                        setShowSearchModal(true)
-                      }}
-                      className="btn-icon-subtle"
-                      aria-label="Search Steam for cover art"
-                    >
+                    <button onClick={() => { setSearchTerm(game.name); setSearchResults([]); setShowSearchModal(true) }} className="btn-icon-subtle" aria-label="Search Steam for cover art">
                       <Search className="w-4 h-4" />
                     </button>
                   </div>
@@ -1738,442 +1887,114 @@ function GameDetailView({
             </div>
           </div>
 
-          {/* DXVK Control */}
-          <div className="glass-card p-6">
-            <h3 className="text-lg font-semibold text-studio-200 mb-4">DXVK Management</h3>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm text-studio-400 mb-2">Fork</label>
-                <select
-                  value={selectedFork}
-                  onChange={(e) => setSelectedFork(e.target.value as DxvkFork)}
-                  className="input-field"
-                  disabled={game.dxvkStatus === 'active'}
-                >
-                  <option value="official">Official (doitsujin)</option>
-                  <option value="gplasync">GPL Async (Ph42oN)</option>
-                  <option value="nvapi">NVAPI (jp7677)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-studio-400 mb-2">Version</label>
-                <select
-                  value={selectedVersion}
-                  onChange={(e) => setSelectedVersion(e.target.value)}
-                  className="input-field"
-                  disabled={game.dxvkStatus === 'active' || isLoadingEngines}
-                >
-                  {isLoadingEngines ? (
-                    <option value="">Loading versions...</option>
-                  ) : availableEngines.length === 0 ? (
-                    <option value="">No versions available</option>
-                  ) : (
-                    availableEngines.map((engine, index) => (
-                      <option key={engine.version} value={engine.version}>
-                        {engine.version}{index === 0 ? ' (Latest)' : ''}{engine.cached ? ' ✓' : ''}
-                      </option>
-                    ))
+          {/* Anti-Cheat Warning */}
+          {antiCheatWarning?.hasAntiCheat && (
+            <div className={`glass-card p-4 border ${antiCheatWarning.highRisk ? 'bg-accent-danger/10 border-accent-danger/30' : 'bg-accent-warning/10 border-accent-warning/30'}`}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'}`} />
+                <div className="flex-1">
+                  <h4 className={`font-semibold ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'}`}>
+                    {antiCheatWarning.highRisk ? '⚠️ High-Risk Anti-Cheat Detected' : '⚡ Anti-Cheat Detected'}
+                  </h4>
+                  <p className="text-sm text-studio-300 mt-1">Found: <strong>{antiCheatWarning.detected.join(', ')}</strong></p>
+                  <p className="text-sm text-studio-400 mt-2">
+                    {antiCheatWarning.highRisk ? 'Using DXVK/VKD3D with this game may result in a permanent ban.' : 'This game has anti-cheat software. Injection may be detected.'}
+                  </p>
+                  {antiCheatWarning.highRisk && (
+                    <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                      <input type="checkbox" checked={showAntiCheatOverride} onChange={(e) => setShowAntiCheatOverride(e.target.checked)} className="w-4 h-4 rounded border-studio-600 bg-studio-800 text-accent-danger focus:ring-accent-danger" />
+                      <span className="text-sm text-studio-300">I understand the risks and want to proceed anyway</span>
+                    </label>
                   )}
-                </select>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Version Info & Cache Controls */}
-            {selectedVersion && availableEngines.length > 0 && (() => {
-              const currentEngine = availableEngines.find(e => e.version === selectedVersion)
-              if (!currentEngine) return null
-
-              return (
-                <div className="mb-6 p-4 rounded-lg bg-studio-800/50 border border-studio-700">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-accent-glow font-mono font-medium">v{selectedVersion}</span>
-                      {currentEngine.releaseDate && (
-                        <span className="text-xs text-studio-500">
-                          {new Date(currentEngine.releaseDate).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      )}
-                      {currentEngine.cached ? (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-accent-success/20 text-accent-success">Cached</span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-studio-700 text-studio-400">Not Downloaded</span>
-                      )}
-                    </div>
-
-                    {/* Cache Actions */}
-                    <div className="flex items-center gap-2">
-                      {!currentEngine.cached && !isPredownloading && (
-                        <button
-                          onClick={async () => {
-                            if (!isElectron) return
-                            setIsPredownloading(true)
-                            setDownloadProgress(0)
-
-                            // Subscribe to progress
-                            const handleProgress = (progress: { fork: DxvkFork; version: string; percent: number }) => {
-                              if (progress.fork === selectedFork && progress.version === selectedVersion) {
-                                setDownloadProgress(progress.percent)
-                              }
-                            }
-                            window.electronAPI.onDownloadProgress(handleProgress)
-
-                            try {
-                              const result = await window.electronAPI.downloadEngine(selectedFork, selectedVersion, currentEngine.downloadUrl)
-                              if (result.success) {
-                                setAvailableEngines(prev => prev.map(e =>
-                                  e.version === selectedVersion ? { ...e, cached: true } : e
-                                ))
-                                addLogEntry('info', `Pre-downloaded ${selectedFork} v${selectedVersion}`)
-                              }
-                            } catch (error) {
-                              addLogEntry('error', `Pre-download failed: ${selectedFork} v${selectedVersion}`, String(error))
-                            } finally {
-                              setIsPredownloading(false)
-                              setDownloadProgress(0)
-                              window.electronAPI.removeDownloadProgressListener()
-                            }
-                          }}
-                          className="btn-secondary text-xs flex items-center gap-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Pre-download
-                        </button>
-                      )}
-
-                      {isPredownloading && (
-                        <div className="flex items-center gap-2">
-                          <RefreshCw className="w-4 h-4 animate-spin text-accent-vulkan" />
-                          <span className="text-xs text-studio-400">{downloadProgress > 0 ? `${downloadProgress}%` : 'Starting...'}</span>
-                        </div>
-                      )}
-
-                      {currentEngine.cached && game.dxvkStatus !== 'active' && (
-                        <button
-                          onClick={async () => {
-                            if (!isElectron) return
-                            const confirmed = window.confirm(`Delete cached ${selectedFork} v${selectedVersion}?`)
-                            if (!confirmed) return
-
-                            try {
-                              const result = await window.electronAPI.deleteEngine(selectedFork, selectedVersion)
-                              if (result.success) {
-                                setAvailableEngines(prev => prev.map(e =>
-                                  e.version === selectedVersion ? { ...e, cached: false } : e
-                                ))
-                                addLogEntry('info', `Cleared cache: ${selectedFork} v${selectedVersion}`)
-                              }
-                            } catch (error) {
-                              console.error('Failed to delete engine:', error)
-                            }
-                          }}
-                          className="btn-secondary text-xs flex items-center gap-1.5 text-accent-danger hover:bg-accent-danger/10"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Clear Cache
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Download Progress Bar */}
-                  {isPredownloading && downloadProgress > 0 && (
-                    <div className="mb-3">
-                      <div className="h-1.5 bg-studio-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent-vulkan transition-all duration-300"
-                          style={{ width: `${downloadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Changelog Preview */}
-                  {currentEngine.changelog && (
-                    <div className="mt-3 pt-3 border-t border-studio-700">
-                      <p className="text-xs text-studio-400 mb-1">Release Notes:</p>
-                      <p className="text-xs text-studio-300 whitespace-pre-wrap line-clamp-3">
-                        {currentEngine.changelog.length > 300
-                          ? currentEngine.changelog.slice(0, 300) + '...'
-                          : currentEngine.changelog}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
-
-            {/* Anti-Cheat Warning Banner */}
-            {antiCheatWarning?.hasAntiCheat && game.dxvkStatus !== 'active' && (
-              <div className={`rounded-lg p-4 mb-6 border ${antiCheatWarning.highRisk
-                ? 'bg-accent-danger/10 border-accent-danger/30'
-                : 'bg-accent-warning/10 border-accent-warning/30'
-                }`}>
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'
-                    }`} />
-                  <div className="flex-1">
-                    <h4 className={`font-semibold ${antiCheatWarning.highRisk ? 'text-accent-danger' : 'text-accent-warning'
-                      }`}>
-                      {antiCheatWarning.highRisk ? '⚠️ High-Risk Anti-Cheat Detected' : '⚡ Anti-Cheat Detected'}
-                    </h4>
-                    <p className="text-sm text-studio-300 mt-1">
-                      Found: <strong>{antiCheatWarning.detected.join(', ')}</strong>
-                    </p>
-                    <p className="text-sm text-studio-400 mt-2">
-                      {antiCheatWarning.highRisk
-                        ? 'Using DXVK with this game may result in a permanent ban. Only proceed if this is a single-player game or you understand the risks.'
-                        : 'This game has anti-cheat software. DXVK may or may not be detected. Proceed with caution.'}
-                    </p>
-
-                    {antiCheatWarning.highRisk && (
-                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showAntiCheatOverride}
-                          onChange={(e) => setShowAntiCheatOverride(e.target.checked)}
-                          className="w-4 h-4 rounded border-studio-600 bg-studio-800 text-accent-danger focus:ring-accent-danger"
-                        />
-                        <span className="text-sm text-studio-300">
-                          I understand the risks and want to proceed anyway
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              {game.dxvkStatus === 'active' ? (
-                <button
-                  onClick={handleUninstall}
-                  disabled={isInstalling}
-                  className="btn-secondary flex items-center gap-2"
-                >
-                  {isInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                  Uninstall DXVK
-                </button>
-              ) : (
-                <button
-                  onClick={handleInstall}
-                  disabled={
-                    isInstalling ||
-                    game.architecture === 'unknown' ||
-                    !selectedVersion ||
-                    (antiCheatWarning?.highRisk && !showAntiCheatOverride)
-                  }
-                  className="btn-primary flex items-center gap-2"
-                >
-                  {isInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {isInstalling ? installStatus || 'Installing...' : 'Install DXVK'}
-                </button>
-              )}
-
-              <button
-                onClick={handleOpenFolder}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <FolderOpen className="w-4 h-4" />
-                Open Folder
+          {/* Global Actions */}
+          <div className="flex gap-3">
+            <button onClick={handleOpenFolder} className="btn-secondary flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" /> Open Folder
+            </button>
+            {(game.dxvkStatus === 'active' || game.vkd3dStatus === 'active') && (
+              <button onClick={() => setShowConfigModal(true)} className="btn-secondary flex items-center gap-2">
+                <Settings className="w-4 h-4" /> Configure (dxvk.conf)
               </button>
-
-              {game.dxvkStatus === 'active' && (
-                <button
-                  onClick={() => setShowConfigModal(true)}
-                  className="btn-secondary flex items-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  Configure
-                </button>
-              )}
-            </div>
-
-            {/* Install Status Message */}
-            {installStatus && !isInstalling && (
-              <p className={`text-sm mt-3 font-medium ${installStatus.startsWith('✓') ? 'text-accent-success' :
-                installStatus.startsWith('✗') ? 'text-accent-danger' :
-                  'text-studio-400'
-                }`}>
-                {installStatus}
-              </p>
             )}
+          </div>
 
-            {game.architecture === 'unknown' && (
-              <p className="text-accent-warning text-sm mt-4">
-                ⚠️ Could not determine game architecture. Please select the correct executable.
-              </p>
-            )}
+          {/* Engines */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <EngineManagementCard game={game} type="dxvk" onUpdate={onUpdate} isElectron={isElectron} installDisabled={installDisabled} />
+            <EngineManagementCard game={game} type="vkd3d" onUpdate={onUpdate} isElectron={isElectron} installDisabled={installDisabled} />
           </div>
         </div>
 
-        {/* Config Editor Modal */}
-        <ConfigEditorModal
-          isOpen={showConfigModal}
-          gamePath={game.path}
-          onClose={() => setShowConfigModal(false)}
-          onSave={() => console.log('Config saved')}
-        />
-
-        {/* Right column - Status */}
+        {/* Right Column Status */}
         <div className="space-y-6">
           <div className="glass-card p-6">
             <h3 className="text-lg font-semibold text-studio-200 mb-4">Status</h3>
-
             <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-studio-400">DXVK</span>
-                <span className={`font-medium ${game.dxvkStatus === 'active' ? 'text-accent-success' : 'text-studio-500'}`}>
-                  {game.dxvkStatus === 'active' ? 'Installed' : 'Not Installed'}
-                </span>
-              </div>
-
-              {game.dxvkVersion && (
-                <div className="flex justify-between">
-                  <span className="text-studio-400">Version</span>
-                  <span className="text-studio-200">{game.dxvkVersion}</span>
+              <div className="border-b border-studio-700 pb-2 mb-2">
+                <div className="flex justify-between mb-1">
+                  <span className="text-studio-400">DXVK</span>
+                  <span className={`font-medium ${game.dxvkStatus === 'active' ? 'text-accent-success' : 'text-studio-500'}`}>{game.dxvkStatus === 'active' ? 'Installed' : 'Inactive'}</span>
                 </div>
-              )}
-
-              {game.dxvkFork && (
-                <div className="flex justify-between">
-                  <span className="text-studio-400">Fork</span>
-                  <span className="text-studio-200 capitalize">{game.dxvkFork}</span>
+                {game.dxvkVersion && <div className="flex justify-between text-sm"><span className="text-studio-500">Version</span><span className="text-studio-300">{game.dxvkVersion}</span></div>}
+              </div>
+              <div className="border-b border-studio-700 pb-2 mb-2">
+                <div className="flex justify-between mb-1">
+                  <span className="text-studio-400">VKD3D</span>
+                  <span className={`font-medium ${game.vkd3dStatus === 'active' ? 'text-accent-success' : 'text-studio-500'}`}>{game.vkd3dStatus === 'active' ? 'Installed' : 'Inactive'}</span>
                 </div>
-              )}
-
-              <div className="flex justify-between">
-                <span className="text-studio-400">Architecture</span>
-                <span className={game.architecture === '32' ? 'badge-32bit' : game.architecture === '64' ? 'badge-64bit' : 'text-studio-500'}>
-                  {game.architecture === 'unknown' ? 'Unknown' : `${game.architecture}-bit`}
-                </span>
+                {game.vkd3dVersion && <div className="flex justify-between text-sm"><span className="text-studio-500">Version</span><span className="text-studio-300">{game.vkd3dVersion}</span></div>}
               </div>
-
-              <div className="flex justify-between">
-                <span className="text-studio-400">Platform</span>
-                <span className="text-studio-200 capitalize">{game.platform}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-studio-400">Executable</span>
-                <span className="text-studio-200 text-sm truncate max-w-[150px]" title={game.executable}>
-                  {game.executable || 'None'}
-                </span>
-              </div>
+              <div className="flex justify-between"><span className="text-studio-400">Arch</span><span className="text-studio-200">{game.architecture}</span></div>
+              <div className="flex justify-between"><span className="text-studio-400">Platform</span><span className="text-studio-200 capitalize">{game.platform}</span></div>
             </div>
           </div>
 
-          {/* Danger Zone */}
           <div className="glass-card p-6 border-accent-danger/20">
-            <h3 className="text-lg font-semibold text-accent-danger mb-4 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" />
-              Danger Zone
-            </h3>
-            <p className="text-sm text-studio-400 mb-4">
-              Remove this game from your library. This won't delete game files.
-            </p>
-            <button
-              onClick={() => setShowRemoveConfirm(true)}
-              className="btn-secondary text-accent-danger hover:bg-accent-danger/10 border-accent-danger/30 flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Remove from Library
+            <h3 className="text-lg font-semibold text-accent-danger mb-4 flex items-center gap-2"><Trash2 className="w-5 h-5" /> Danger Zone</h3>
+            <p className="text-sm text-studio-400 mb-4">Remove this game from your library. This won't delete game files.</p>
+            <button onClick={() => setShowRemoveConfirm(true)} className="btn-secondary text-accent-danger hover:bg-accent-danger/10 border-accent-danger/30 flex items-center gap-2">
+              <Trash2 className="w-4 h-4" /> Remove from Library
             </button>
           </div>
         </div>
       </div>
 
-      {/* Remove Confirmation Modal */}
+      <ConfigEditorModal isOpen={showConfigModal} gamePath={game.path} onClose={() => setShowConfigModal(false)} onSave={() => console.log('Config saved')} />
+
       {showRemoveConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in">
           <div className="glass-card max-w-md w-full mx-4 p-6">
             <h3 className="text-xl font-semibold text-studio-100 mb-4">Remove Game?</h3>
-            <p className="text-studio-400 mb-6">
-              Are you sure you want to remove <strong className="text-studio-200">{game.name}</strong> from your library?
-              This won't delete any game files from your computer.
-            </p>
+            <p className="text-studio-400 mb-6">Are you sure you want to remove <strong className="text-studio-200">{game.name}</strong> from your library?</p>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowRemoveConfirm(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowRemoveConfirm(false)
-                  onRemove()
-                }}
-                className="btn-primary bg-accent-danger border-accent-danger hover:bg-accent-danger/80 flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Remove
-              </button>
+              <button onClick={() => setShowRemoveConfirm(false)} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setShowRemoveConfirm(false); onRemove() }} className="btn-primary bg-accent-danger border-accent-danger hover:bg-accent-danger/80">Remove</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Steam Search Modal */}
       {showSearchModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in">
           <div className="glass-card max-w-lg w-full mx-4 p-6 max-h-[80vh] flex flex-col">
             <h3 className="text-xl font-semibold text-studio-100 mb-4">Search Steam</h3>
-            <div className="mb-4">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field w-full"
-                placeholder="Start typing to search..."
-                autoFocus
-              />
-            </div>
+            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field w-full mb-4" placeholder="Start typing to search..." autoFocus />
             <div className="flex-1 overflow-y-auto space-y-2 min-h-[200px]">
-              {searchResults.length === 0 && !isSearching && searchTerm.length >= 2 && (
-                <p className="text-studio-500 text-center py-8">No results found</p>
-              )}
-              {searchResults.length === 0 && !isSearching && searchTerm.length < 2 && (
-                <p className="text-studio-500 text-center py-8">Type at least 2 characters to search</p>
-              )}
-              {isSearching && (
-                <p className="text-studio-400 text-center py-8">Searching...</p>
-              )}
-              {searchResults.map((result) => (
-                <button
-                  key={result.id}
-                  onClick={() => {
-                    onUpdate({
-                      ...game,
-                      name: result.name,
-                      steamAppId: result.id.toString(),
-                      updatedAt: new Date().toISOString()
-                    })
-                    setShowSearchModal(false)
-                  }}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-studio-700/50 transition-colors text-left"
-                >
-                  <img
-                    src={result.imageUrl}
-                    alt={result.name}
-                    className="w-16 h-9 object-cover rounded"
-                  />
+              {searchResults.length === 0 && !isSearching && (<p className="text-studio-500 text-center py-8">No results found</p>)}
+              {searchResults.map(result => (
+                <button key={result.id} onClick={() => { onUpdate({ ...game, name: result.name, steamAppId: result.id.toString(), updatedAt: new Date().toISOString() }); setShowSearchModal(false) }} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-studio-700/50 text-left">
+                  <img src={result.imageUrl} alt="" className="w-16 h-9 object-cover rounded" />
                   <span className="text-studio-200 flex-1 truncate">{result.name}</span>
-                  <span className="text-studio-500 text-xs">ID: {result.id}</span>
                 </button>
               ))}
             </div>
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-studio-700">
-              <button
-                onClick={() => setShowSearchModal(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
+            <div className="flex justify-end pt-4 border-t border-studio-700">
+              <button onClick={() => setShowSearchModal(false)} className="btn-secondary">Cancel</button>
             </div>
           </div>
         </div>
@@ -2181,6 +2002,7 @@ function GameDetailView({
     </div>
   )
 }
+
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 

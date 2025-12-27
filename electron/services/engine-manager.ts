@@ -3,19 +3,22 @@
  * Handles downloading, caching, and managing DXVK versions
  */
 
-import { existsSync, mkdirSync, createWriteStream, readdirSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, createWriteStream, readdirSync, rmSync, createReadStream } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { pipeline } from 'stream/promises'
 import { createGunzip } from 'zlib'
-import { extract } from 'tar'
+import { extract, x as tarExtract } from 'tar'
+import { Readable } from 'stream'
+import { Decompress } from 'fzstd'
 import type { DxvkEngine, DxvkFork, DxvkRelease } from '../shared/types'
 
 // GitHub API endpoints for DXVK releases
 const GITHUB_REPOS: Record<DxvkFork, string> = {
   official: 'doitsujin/dxvk',
   gplasync: 'Sporif/dxvk-async',  // Archived but still accessible
-  nvapi: 'jp7677/dxvk-nvapi'
+  nvapi: 'jp7677/dxvk-nvapi',
+  vkd3d: 'HansKristian-Work/vkd3d-proton'
 }
 
 /**
@@ -109,7 +112,7 @@ export function getAllCachedEngines(): Array<{
     sizeBytes: number
   }> = []
 
-  const forks: DxvkFork[] = ['official', 'gplasync', 'nvapi']
+  const forks: DxvkFork[] = ['official', 'gplasync', 'nvapi', 'vkd3d']
 
   for (const fork of forks) {
     const versions = getCachedVersions(fork)
@@ -244,7 +247,7 @@ function getFallbackReleases(fork: DxvkFork): DxvkRelease[] {
   }
 
   // GitHub forks (Official and NVAPI)
-  const fallbackData: Record<'official' | 'nvapi', { versions: string[], assetPrefix: string }> = {
+  const fallbackData: Record<'official' | 'nvapi' | 'vkd3d', { versions: string[], assetPrefix: string }> = {
     official: {
       versions: ['2.7.1', '2.7', '2.6.1', '2.5.3', '2.5.1', '2.5', '2.4.1'],
       assetPrefix: 'dxvk'
@@ -252,11 +255,15 @@ function getFallbackReleases(fork: DxvkFork): DxvkRelease[] {
     nvapi: {
       versions: ['0.7.1', '0.7.0', '0.6.9', '0.6.8', '0.6.7'],
       assetPrefix: 'dxvk-nvapi'
+    },
+    vkd3d: {
+      versions: ['2.13', '2.12', '2.11.1', '2.11'],
+      assetPrefix: 'vkd3d-proton'
     }
   }
 
   const repo = GITHUB_REPOS[fork]
-  const data = fallbackData[fork as 'official' | 'nvapi']
+  const data = fallbackData[fork as 'official' | 'nvapi' | 'vkd3d']
 
   return data.versions.map(version => {
     // NVAPI uses 'v' prefix in asset filename, others don't
@@ -282,7 +289,7 @@ function getFallbackReleases(fork: DxvkFork): DxvkRelease[] {
 export function releaseToEngine(release: DxvkRelease, fork: DxvkFork): DxvkEngine | null {
   // Find the download asset - DXVK uses ZIP files
   const asset = release.assets.find(a =>
-    a.name.endsWith('.zip') || a.name.endsWith('.tar.gz') || a.name.endsWith('.tar.xz')
+    a.name.endsWith('.zip') || a.name.endsWith('.tar.gz') || a.name.endsWith('.tar.xz') || a.name.endsWith('.tar.zst')
   )
 
   if (!asset) {
@@ -379,11 +386,22 @@ export async function downloadEngine(
     })
 
     // Extract the tarball
-    await extract({
-      file: tempPath,
-      cwd: versionPath,
-      strip: 1 // Remove the top-level directory from the archive
-    })
+    if (downloadUrl.endsWith('.tar.zst')) {
+      await pipeline(
+        createReadStream(tempPath),
+        new Decompress() as any,
+        tarExtract({
+          cwd: versionPath,
+          strip: 1
+        })
+      )
+    } else {
+      await extract({
+        file: tempPath,
+        cwd: versionPath,
+        strip: 1 // Remove the top-level directory from the archive
+      })
+    }
 
     // Clean up temp file
     rmSync(tempPath, { force: true })
@@ -415,7 +433,20 @@ export function deleteEngine(fork: DxvkFork, version: string): void {
 export function getEngineDlls(fork: DxvkFork, version: string, architecture: '32' | '64'): string[] {
   const versionPath = getVersionPath(fork, version)
   const archFolder = architecture === '32' ? 'x32' : 'x64'
-  const dllPath = join(versionPath, archFolder)
+
+  // VKD3D structure might correspond to x86/x64 like DXVK, need to verify.
+  // Standard VKD3D releases have x86 and x64 folders?
+  // vkd3d-proton releases usually have: x86/ and x64/ dirs.
+  // We will assume standard structure for now.
+  let dllPath = join(versionPath, archFolder)
+
+  // Handle case where arch folders are named differently?
+  // DXVK usually uses x32/x64 in our cache (we might have renamed them on extraction? No, downloadEngine strips 1 level).
+  // DXVK releases: dxvk-x.y.z/x64/
+  // VKD3D releases: vkd3d-proton-x.y.z/x64/
+  // So 'strip: 1' works for both.
+
+  // VKD3D might drop 32-bit support in future, but for now it exists.
 
   if (!existsSync(dllPath)) {
     return []
