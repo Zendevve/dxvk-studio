@@ -27,6 +27,7 @@ import type { Game, DxvkFork } from './shared/types'
 
 import { ContextMenu } from './components/ContextMenu'
 import { ConfigEditorModal } from './components/ConfigEditorModal'
+import { Vkd3dConfigModal } from './components/Vkd3dConfigModal'
 
 // Check if running in Electron
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
@@ -1794,6 +1795,7 @@ function GameDetailView({
   } | null>(null)
   const [showAntiCheatOverride, setShowAntiCheatOverride] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
+  const [showVkd3dConfigModal, setShowVkd3dConfigModal] = useState(false)
 
   // Debounced live search
   useEffect(() => {
@@ -1931,9 +1933,14 @@ function GameDetailView({
             <button onClick={handleOpenFolder} className="btn-secondary flex items-center gap-2">
               <FolderOpen className="w-4 h-4" /> Open Folder
             </button>
-            {(game.dxvkStatus === 'active' || game.vkd3dStatus === 'active') && (
+            {game.dxvkStatus === 'active' && (
               <button onClick={() => setShowConfigModal(true)} className="btn-secondary flex items-center gap-2">
-                <Settings className="w-4 h-4" /> Configure (dxvk.conf)
+                <Settings className="w-4 h-4" /> DXVK Config
+              </button>
+            )}
+            {game.vkd3dStatus === 'active' && (
+              <button onClick={() => setShowVkd3dConfigModal(true)} className="btn-secondary flex items-center gap-2">
+                <Settings className="w-4 h-4" /> VKD3D Config
               </button>
             )}
           </div>
@@ -1977,6 +1984,7 @@ function GameDetailView({
       </div>
 
       <ConfigEditorModal isOpen={showConfigModal} gamePath={game.path} onClose={() => setShowConfigModal(false)} onSave={() => console.log('Config saved')} />
+      <Vkd3dConfigModal isOpen={showVkd3dConfigModal} gamePath={game.path} executable={game.executable} onClose={() => setShowVkd3dConfigModal(false)} onSave={() => console.log('VKD3D config saved')} />
 
       {showRemoveConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in">
