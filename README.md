@@ -39,20 +39,96 @@ DXVK is a translation layer that converts DirectX calls to Vulkan. It can **boos
 
 ---
 
-## Quick Start
+## Installation
 
-> **Open Core Model**: The source code is free and open. Pre-built binaries are available exclusively to supporters.
+> **Open Core Model**: The source code is free and open under GPL-3.0. Pre-built binaries are available for purchase.
 
-### Get DXVK Studio
+---
 
-| Option | What you get |
-|--------|--------------|
-| **🆓 Free** | [Build from source](#development) — full functionality, you compile it |
-| **💎 Supporter** | [Buy on Gumroad](https://gumroad.com) — ready-to-run installer, supports development |
+### Option 1: Buy Pre-Built (Recommended)
 
-**Requirements:** Windows 10/11, Vulkan-capable GPU
+**[Get DXVK Studio on Gumroad →](https://guinto2.gumroad.com/l/dxvkstudio)**
 
-**Usage:**
+Download, run the installer, done. Supports ongoing development.
+
+**System Requirements:**
+- Windows 10/11 (64-bit)
+- Vulkan-capable GPU (NVIDIA, AMD, or Intel Arc)
+
+---
+
+### Option 2: Build From Source
+
+For developers who prefer to compile the application themselves.
+
+#### Prerequisites
+
+You must have the following installed and properly configured:
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Node.js** | v20.0.0+ (LTS) | [Download](https://nodejs.org/) — includes npm. Verify with `node -v` |
+| **npm** | v10.0.0+ | Comes with Node.js. Verify with `npm -v` |
+| **Git** | Latest | [Download](https://git-scm.com/download/win) — required for cloning |
+| **Python** | 3.10+ | [Download](https://python.org) — required by node-gyp for native modules |
+| **Visual Studio Build Tools** | 2022 | [Download](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — required for compiling native Node.js addons |
+
+> **⚠️ Important:** The Visual Studio Build Tools installation requires selecting the **"Desktop development with C++"** workload, which includes the MSVC compiler, Windows SDK, and CMake tools. This is approximately **6-8 GB** of disk space.
+
+#### Native Module Dependencies
+
+This project uses `better-sqlite3`, a native Node.js addon that requires compilation during installation. If you encounter errors during `npm install`, ensure:
+
+1. Python is in your system PATH
+2. Visual Studio Build Tools are installed with C++ workload
+3. You're running the terminal as Administrator (if permission errors occur)
+
+#### Build Steps
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Zendevve/dxvk-studio.git
+cd dxvk-studio
+
+# 2. Install dependencies (may take several minutes due to native compilation)
+npm install
+
+# 3. Verify the installation succeeded
+npm test
+
+# 4. Start development server with hot reload
+npm run dev
+```
+
+#### Creating a Production Build
+
+To create distributable binaries:
+
+```bash
+# Full production build (TypeScript compilation + Vite bundling + Electron packaging)
+npm run build
+```
+
+This generates:
+- `release/DXVK Studio Setup X.X.X.exe` — NSIS installer
+- `release/DXVK Studio X.X.X.exe` — Portable executable
+
+> **Note:** The build process requires all native dependencies to be properly compiled. If you encounter errors, ensure your Visual Studio Build Tools installation includes the Windows 10/11 SDK.
+
+#### Troubleshooting Build Errors
+
+| Error | Solution |
+|-------|----------|
+| `node-gyp` fails | Install Visual Studio Build Tools with C++ workload |
+| `better-sqlite3` compilation error | Run `npm config set msvs_version 2022` then reinstall |
+| Python not found | Add Python to PATH or run `npm config set python /path/to/python.exe` |
+| EACCES permission denied | Run terminal as Administrator |
+| Electron download fails | Check firewall/proxy settings; Electron binaries are ~100MB |
+
+---
+
+## Usage
+
 1. Launch the app — your games appear automatically
 2. Click a game → choose fork and version → click **Install**
 3. To undo, click **Uninstall** — original files are restored
@@ -70,6 +146,7 @@ DXVK is a translation layer that converts DirectX calls to Vulkan. It can **boos
 | Styling | TailwindCSS |
 | Build | Vite + electron-builder |
 | Testing | Vitest |
+| Database | better-sqlite3 (native addon) |
 
 ### Architecture
 
@@ -92,15 +169,13 @@ src/
 └── shared/types.ts      # Shared TypeScript interfaces
 ```
 
-### Development
+### Development Commands
 
 ```bash
-git clone https://github.com/Zendevve/dxvk-studio.git
-cd dxvk-studio
-npm install
-npm run dev      # Start with hot reload
-npm test         # Run tests
-npm run build    # Production build
+npm run dev          # Start with hot reload
+npm test             # Run test suite
+npm run lint         # ESLint check
+npm run build        # Production build
 ```
 
 ### Key Design Decisions
