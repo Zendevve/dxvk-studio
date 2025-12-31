@@ -3,7 +3,9 @@
  * Reads the Machine Type from PE headers to determine 32-bit vs 64-bit
  */
 
-import { openSync, readSync, closeSync } from 'fs'
+import { openSync, readSync, closeSync, readdirSync, statSync, existsSync } from 'fs'
+import { join, extname, basename } from 'path'
+import { spawn } from 'child_process'
 import type { PEAnalysisResult, Architecture } from '../shared/types'
 import { PE_MACHINE_I386, PE_MACHINE_AMD64 } from '../shared/types'
 
@@ -103,54 +105,132 @@ export function analyzeExecutable(exePath: string): PEAnalysisResult {
   }
 }
 
-/**
- * Find executable files in a game directory
- * Returns the most likely main executable
- */
-export function findGameExecutables(gamePath: string): string[] {
-  const { readdirSync, statSync } = require('fs')
-  const { join, extname } = require('path')
+// Executables to skip - not game executables
+const SKIP_PATTERNS = [
+  'unins', 'redist', 'vcredist', 'dxsetup', 'directx',
+  'crash', 'report', 'updater', 'setup', 'installer',
+  'dotnet', 'vc_redist', 'oalinst', 'physx', 'easyanticheat',
+  'battleye', 'dxwebsetup', 'support', 'benchmark'
+]
 
-  const executables: string[] = []
+// Common subfolders where game executables are found
+const GAME_SUBFOLDERS = [
+  '', // root
+  'bin', 'Bin', 'BIN',
+  'binaries', 'Binaries', 'BINARIES',
+  'bin64', 'Bin64', 'bin_x64',
+  'bin32', 'Bin32', 'bin_x86',
+  'win64', 'Win64', 'x64',
+  'win32', 'Win32', 'x86',
+  'game', 'Game',
+  'engine', 'Engine',
+  'retail', 'Retail'
+]
 
-  try {
-    const entries = readdirSync(gamePath)
-
-    for (const entry of entries) {
-      const fullPath = join(gamePath, entry)
-
-      try {
-        const stat = statSync(fullPath)
-
-        if (stat.isFile() && extname(entry).toLowerCase() === '.exe') {
-          // Skip common non-game executables
-          const lowerName = entry.toLowerCase()
-          if (
-            !lowerName.includes('unins') &&
-            !lowerName.includes('redist') &&
-            !lowerName.includes('vcredist') &&
-            !lowerName.includes('dxsetup') &&
-            !lowerName.includes('directx') &&
-            !lowerName.includes('crash') &&
-            !lowerName.includes('report') &&
-            !lowerName.includes('launcher') ||
-            lowerName === 'launcher.exe' // Keep main launchers
-          ) {
-            executables.push(entry)
-          }
-        }
-      } catch {
-        // Skip files we can't read
-      }
-    }
-  } catch (error) {
-    console.error(`Failed to scan directory ${gamePath}:`, error)
-  }
-
-  return executables
+interface ExecutableInfo {
+  path: string       // full path to executable
+  name: string       // just the filename
+  relativePath: string // path relative to game root
+  score: number      // higher = more likely to be main exe
+  architecture: Architecture
 }
 
-import { spawn } from 'child_process'
+/**
+ * Find executable files in a game directory
+ * Scans common subfolders and scores executables to find the main one
+ */
+export function findGameExecutables(gamePath: string): string[] {
+  const executables: ExecutableInfo[] = []
+
+  for (const subfolder of GAME_SUBFOLDERS) {
+    const searchPath = subfolder ? join(gamePath, subfolder) : gamePath
+
+    if (!existsSync(searchPath)) continue
+
+    try {
+      const entries = readdirSync(searchPath)
+
+      for (const entry of entries) {
+        const fullPath = join(searchPath, entry)
+
+        try {
+          const stat = statSync(fullPath)
+
+          if (stat.isFile() && extname(entry).toLowerCase() === '.exe') {
+            const lowerName = entry.toLowerCase()
+
+            // Skip known non-game executables
+            if (SKIP_PATTERNS.some(pattern => lowerName.includes(pattern))) {
+              continue
+            }
+
+            // Calculate score for this executable
+            let score = 0
+
+            // Prefer executables in root folder
+            if (!subfolder) score += 10
+
+            // Prefer larger files (more likely to be main game)
+            if (stat.size > 10 * 1024 * 1024) score += 5  // >10MB
+            if (stat.size > 50 * 1024 * 1024) score += 5  // >50MB
+
+            // Prefer names that match game launcher patterns
+            if (lowerName === 'game.exe' || lowerName === 'launcher.exe') score += 3
+            if (lowerName.includes('game')) score += 2
+            if (lowerName.includes('play')) score += 2
+            if (lowerName.includes('start')) score += 1
+
+            // Penalize known 32-bit indicators in name
+            if (lowerName.includes('_32') || lowerName.includes('x86')) score -= 2
+
+            // Prefer 64-bit executables (more common for modern games)
+            const analysis = analyzeExecutable(fullPath)
+            if (analysis.architecture === '64') score += 3
+            if (analysis.architecture === '32') score += 1 // still valid
+
+            executables.push({
+              path: fullPath,
+              name: entry,
+              relativePath: subfolder ? join(subfolder, entry) : entry,
+              score,
+              architecture: analysis.architecture
+            })
+          }
+        } catch {
+          // Skip files we can't read
+        }
+      }
+    } catch {
+      // Skip directories we can't read
+    }
+  }
+
+  // Sort by score descending, return filenames only
+  executables.sort((a, b) => b.score - a.score)
+
+  // Return relative paths to executables
+  return executables.map(e => e.relativePath)
+}
+
+/**
+ * Find the best executable for a game, analyzing architecture
+ */
+export function findBestExecutable(gamePath: string): { executable: string; architecture: Architecture } {
+  const executables = findGameExecutables(gamePath)
+
+  if (executables.length === 0) {
+    return { executable: '', architecture: 'unknown' }
+  }
+
+  const bestExe = executables[0]
+  const fullPath = join(gamePath, bestExe)
+  const analysis = analyzeExecutable(fullPath)
+
+  return {
+    executable: bestExe,
+    architecture: analysis.architecture
+  }
+}
 
 export interface PeVersionInfo {
   ProductName?: string
@@ -170,10 +250,9 @@ export async function getPeVersionInfo(exePath: string): Promise<PeVersionInfo> 
       })
 
       let stdout = ''
-      let stderr = ''
 
       ps.stdout.on('data', (data) => { stdout += data.toString() })
-      ps.stderr.on('data', (data) => { stderr += data.toString() })
+      ps.stderr.on('data', () => { })
 
       ps.on('close', (code) => {
         if (code !== 0 || !stdout.trim()) {
