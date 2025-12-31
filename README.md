@@ -8,8 +8,9 @@ A Windows desktop app that makes [DXVK](https://github.com/doitsujin/dxvk) easy 
 
 [![Release](https://img.shields.io/github/v/release/Zendevve/dxvk-studio?style=flat-square&color=0969da)](https://github.com/Zendevve/dxvk-studio/releases)
 [![Downloads](https://img.shields.io/github/downloads/Zendevve/dxvk-studio/total?style=flat-square&color=2da44e)](https://github.com/Zendevve/dxvk-studio/releases)
-[![License](https://img.shields.io/badge/license-GPLv3-blue?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPLv3-blue?style=flat-square)](LICENSE)
 [![Built with Electron](https://img.shields.io/badge/built%20with-Electron-47848f?style=flat-square&logo=electron&logoColor=white)](https://electronjs.org)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/invite/q5mSx7uFuC)
 
 <br>
 
@@ -41,7 +42,7 @@ DXVK is a translation layer that converts DirectX calls to Vulkan. It can **boos
 
 ## Installation
 
-> **Open Core Model**: The source code is free and open under GPL-3.0. Pre-built binaries are available for purchase.
+> **Open Core Model**: The source code is free and open under AGPL-3.0. Pre-built binaries are available for purchase.
 
 ---
 
@@ -206,15 +207,23 @@ npm run build        # Production build
 
 ## Contributing
 
-Pull requests welcome. For significant changes, open an issue first.
+Pull requests are **required** for any changes you wish to see in the project. If you fork this project, you are strongly encouraged to submit your improvements back to the main repository.
+
+Please do not distribute your own compiled binaries without contributing back. The goal is to keep the community unified and the project sustainable.
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
+## Community
+
+Join the [Discord server](https://discord.com/invite/q5mSx7uFuC) to ask questions, suggest features, or hang out. This is the best place to reach the developer.
+
+---
+
 ## License
 
-[GPL-3.0](LICENSE) — use it freely, but share your changes.
+[AGPL-3.0](LICENSE) — strong copyleft. You must share your changes if you distribute or run over a network.
 
 ---
 

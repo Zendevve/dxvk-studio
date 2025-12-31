@@ -18,6 +18,13 @@ export interface Game {
   vkd3dVersion?: string
   vkd3dFork?: DxvkFork
 
+  // IGDB metadata (optional)
+  igdbId?: number
+  coverUrl?: string
+  summary?: string
+  genres?: string[]
+  developers?: string[]
+
   lastPlayed?: Date | string
   createdAt: Date | string
   updatedAt: Date | string
@@ -228,4 +235,31 @@ export interface DeployedDll {
 
 export const VKD3D_DLLS = {
   d3d12: ['d3d12.dll', 'd3d12core.dll']
+}
+
+// ============================================
+// IGDB Types
+// ============================================
+
+export interface IgdbGame {
+  id: number
+  name: string
+  summary?: string
+  coverUrl?: string
+  genres?: string[]
+  developers?: string[]
+  publishers?: string[]
+  releaseDate?: string
+  rating?: number
+}
+
+export interface IgdbCredentials {
+  clientId: string
+  clientSecret: string
+}
+
+export interface IgdbSearchResult {
+  id: number
+  name: string
+  coverUrl?: string
 }

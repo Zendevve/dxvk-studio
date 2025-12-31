@@ -7,49 +7,6 @@ import { v4 as uuidv4 } from 'uuid'
 
 const PROFILES_FILE = 'profiles.json'
 
-// Hardcoded built-in profiles
-const BUILTIN_PROFILES: DxvkProfile[] = [
-  {
-    id: 'builtin-default',
-    name: 'DXVK Defaults',
-    description: 'Standard DXVK behavior with no overrides.',
-    isBuiltin: true,
-    enableAsync: true,
-    logLevel: 'warn'
-  },
-  {
-    id: 'builtin-performance',
-    name: 'Max Performance',
-    description: 'Optimized for lowest latency and highest throughput.',
-    isBuiltin: true,
-    enableAsync: true,
-    numCompilerThreads: 0, // Auto
-    maxFrameLatency: 1,
-    syncInterval: 0, // No VSync
-    logLevel: 'none',
-    enableHDR: false
-  },
-  {
-    id: 'builtin-compatibility',
-    name: 'Compatibility Mode',
-    description: 'Safest settings for troublesome games.',
-    isBuiltin: true,
-    enableAsync: false, // Async can cause crashes in some games
-    numCompilerThreads: 1,
-    maxFrameLatency: 3,
-    logLevel: 'info'
-  },
-  {
-    id: 'builtin-debugging',
-    name: 'Debugging',
-    description: 'Enables HUD and detailed logging.',
-    isBuiltin: true,
-    enableAsync: true,
-    hud: ['full'],
-    logLevel: 'debug'
-  }
-]
-
 function getProfilesPath(): string {
   return join(app.getPath('userData'), PROFILES_FILE)
 }
@@ -105,8 +62,7 @@ function saveUserProfiles(profiles: DxvkProfile[]): void {
 }
 
 export function getAllProfiles(): DxvkProfile[] {
-  const userProfiles = loadUserProfiles()
-  return [...BUILTIN_PROFILES, ...userProfiles]
+  return loadUserProfiles()
 }
 
 export function saveProfile(profile: Omit<DxvkProfile, 'id'> & { id?: string }): DxvkProfile {
@@ -136,11 +92,6 @@ export function saveProfile(profile: Omit<DxvkProfile, 'id'> & { id?: string }):
 }
 
 export function deleteProfile(id: string): boolean {
-  // Prevent deleting built-ins
-  if (BUILTIN_PROFILES.some(p => p.id === id)) {
-    throw new Error('Cannot delete built-in profile')
-  }
-
   const userProfiles = loadUserProfiles()
   const filtered = userProfiles.filter(p => p.id !== id)
 

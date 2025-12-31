@@ -15,9 +15,6 @@ import {
   ExternalLink,
   Trash2,
   Pencil,
-  Circle,
-  CircleDot,
-  CircleAlert,
   Info,
   AlertCircle,
   Filter,
@@ -28,6 +25,9 @@ import type { Game, DxvkFork } from './shared/types'
 import { ContextMenu } from './components/ContextMenu'
 import { ConfigEditorModal } from './components/ConfigEditorModal'
 import { Vkd3dConfigModal } from './components/Vkd3dConfigModal'
+import { OnboardingWizard } from './components/OnboardingWizard'
+import { CommandPalette } from './components/CommandPalette'
+import { TitleBar } from './components/TitleBar'
 
 // Check if running in Electron
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
@@ -92,6 +92,26 @@ function App() {
     y: number
     game: Game
   } | null>(null)
+
+  // Onboarding state - show wizard on first launch
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('dxvk-studio-onboarded')
+  })
+
+  // Command Palette state
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
+
+  // Global keyboard shortcut for Command Palette (Ctrl+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowCommandPalette(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
 
   // Save games to localStorage when they change
   useEffect(() => {
@@ -270,191 +290,220 @@ function App() {
   )
 
   return (
-    <div className="h-screen flex bg-studio-950">
-      {/* Notification Toast */}
-      {notification && (
-        <div className={`
+    <div className="h-screen flex flex-col bg-studio-950">
+      {/* Custom Title Bar */}
+      <TitleBar />
+
+      {/* Main Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Notification Toast */}
+        {notification && (
+          <div className={`
           fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3
           animate-slide-up backdrop-blur-sm
           ${notification.type === 'success' ? 'bg-accent-success border border-accent-success/50 text-white' : ''}
           ${notification.type === 'error' ? 'bg-accent-danger border border-accent-danger/50 text-white' : ''}
           ${notification.type === 'info' ? 'bg-accent-info border border-accent-info/50 text-white' : ''}
         `}>
-          {notification.type === 'success' && <Check className="w-4 h-4" />}
-          {notification.type === 'error' && <X className="w-4 h-4" />}
-          {notification.type === 'info' && <AlertTriangle className="w-4 h-4" />}
-          <span className="text-sm font-medium">{notification.message}</span>
-        </div>
-      )}
-
-      {/* Sidebar */}
-      <aside className="sidebar">
-        {/* Logo */}
-        <div className="p-4 border-b border-studio-800">
-          <div className="flex items-center gap-3">
-            <img src="/icon.png" alt="Logo" className="w-10 h-10 rounded-lg shadow-elevation-2" />
-            <div>
-              <h1 className="font-semibold text-studio-100">DXVK Studio</h1>
-              <p className="text-xs text-studio-500">v{__APP_VERSION__}</p>
-            </div>
+            {notification.type === 'success' && <Check className="w-4 h-4" />}
+            {notification.type === 'error' && <X className="w-4 h-4" />}
+            {notification.type === 'info' && <AlertTriangle className="w-4 h-4" />}
+            <span className="text-sm font-medium">{notification.message}</span>
           </div>
-        </div>
+        )}
 
-        {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1">
-          <NavItem
-            icon={<Gamepad2 className="w-5 h-5" />}
-            label="Games"
-            active={activeView === 'games'}
-            onClick={() => { setActiveView('games'); setSelectedGame(null) }}
-          />
-          <NavItem
-            icon={<Download className="w-5 h-5" />}
-            label="Engine Manager"
-            active={activeView === 'engines'}
-            onClick={() => setActiveView('engines')}
-          />
-          <NavItem
-            icon={<FileText className="w-5 h-5" />}
-            label="Logs"
-            active={activeView === 'logs'}
-            onClick={() => setActiveView('logs')}
-          />
-          <NavItem
-            icon={<Settings className="w-5 h-5" />}
-            label="Settings"
-            active={activeView === 'settings'}
-            onClick={() => setActiveView('settings')}
-          />
-        </nav>
+        {/* Sidebar */}
+        <aside className="sidebar">
+          {/* Logo */}
+          <div className="p-6 border-b border-white/5 relative overflow-hidden">
+            {/* Subtle red glow behind logo */}
+            <div className="absolute top-0 left-0 w-full h-full bg-accent-vulkan/5 blur-xl pointer-events-none" />
 
-        {/* Quick Stats */}
-        <div className="p-4 border-t border-studio-800">
-          <div className="glass-card p-3 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-studio-500">Games</span>
-              <span className="text-studio-200 font-medium">{games.length}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-studio-500">DXVK Active</span>
-              <span className="text-accent-success font-medium">
-                {games.filter(g => g.dxvkStatus === 'active').length}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-studio-500">Steam</span>
-              <span className={steamInstalled === null ? 'text-studio-500' : steamInstalled ? 'text-accent-success' : 'text-accent-warning'}>
-                {steamInstalled === null ? '...' : steamInstalled ? 'Found' : 'Not Found'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="main-content">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-studio-950/80 backdrop-blur-md border-b border-studio-800 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-studio-500" />
-                <input
-                  type="text"
-                  placeholder="Search games..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-10"
-                />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-accent-vulkan/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <img src="/icon.png" alt="Logo" className="w-12 h-12 rounded-xl shadow-elevation-2 relative transition-transform duration-300 group-hover:scale-105" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg text-white tracking-tight">DXVK Studio</h1>
+                <p className="text-xs text-studio-400 font-medium">Pro Edition v{__APP_VERSION__}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleScan}
-                disabled={isScanning}
-                className="btn-secondary flex items-center gap-2"
-                title="Scan all libraries (Steam, GOG, Epic)"
-              >
-                <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
-                {isScanning ? 'Scanning...' : 'Scan Games'}
-              </button>
-              <button
-                onClick={handleAddGame}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Game
-              </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2">
+            <NavItem
+              icon={<Gamepad2 className="w-5 h-5" />}
+              label="Games"
+              active={activeView === 'games'}
+              onClick={() => { setActiveView('games'); setSelectedGame(null) }}
+            />
+            <NavItem
+              icon={<Download className="w-5 h-5" />}
+              label="Engine Manager"
+              active={activeView === 'engines'}
+              onClick={() => setActiveView('engines')}
+            />
+            <NavItem
+              icon={<FileText className="w-5 h-5" />}
+              label="Logs"
+              active={activeView === 'logs'}
+              onClick={() => setActiveView('logs')}
+            />
+            <NavItem
+              icon={<Settings className="w-5 h-5" />}
+              label="Settings"
+              active={activeView === 'settings'}
+              onClick={() => setActiveView('settings')}
+            />
+          </nav>
+
+          {/* Quick Stats */}
+          <div className="p-4 border-t border-white/5">
+            <div className="glass-card p-4 space-y-3 bg-studio-900/40">
+              <div className="flex justify-between text-sm">
+                <span className="text-studio-500">Games</span>
+                <span className="text-studio-200 font-medium">{games.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-studio-500">DXVK Active</span>
+                <span className="text-accent-success font-medium">
+                  {games.filter(g => g.dxvkStatus === 'active').length}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-studio-500">Steam</span>
+                <span className={steamInstalled === null ? 'text-studio-500' : steamInstalled ? 'text-accent-success' : 'text-accent-warning'}>
+                  {steamInstalled === null ? '...' : steamInstalled ? 'Found' : 'Not Found'}
+                </span>
+              </div>
             </div>
           </div>
-        </header>
+        </aside>
 
-        {/* Main Content - View Switching */}
-        {activeView === 'engines' ? (
-          <EngineManagerView />
-        ) : activeView === 'games' ? (
-          <div className="p-6">
-            {selectedGame ? (
-              <GameDetailView
-                game={selectedGame}
-                onBack={() => setSelectedGame(null)}
-                onUpdate={(updated) => {
-                  setGames(prev => prev.map(g => g.id === updated.id ? updated : g))
-                  setSelectedGame(updated)
-                }}
-                onRemove={() => handleRemoveGame(selectedGame.id)}
-              />
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                  {filteredGames.map(game => (
-                    <GameCard
-                      key={game.id}
-                      game={game}
-                      onClick={() => setSelectedGame(game)}
-                      onContextMenu={(e, g) => setContextMenu({ x: e.clientX, y: e.clientY, game: g })}
-                    />
-                  ))}
-                </div>
-
-                {filteredGames.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <Gamepad2 className="w-16 h-16 text-studio-700 mb-4" />
-                    <h3 className="text-lg font-medium text-studio-400 mb-2">No games found</h3>
-                    <p className="text-studio-500 max-w-sm">
-                      Click "Scan Games" to detect installed games or "Add Game" to manually add a game.
-                    </p>
-                  </div>
-                )}
-
-                {/* Context Menu */}
-                {contextMenu && (
-                  <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    game={contextMenu.game}
-                    onClose={() => setContextMenu(null)}
-                    onOpenFolder={() => handleOpenFolder(contextMenu.game)}
-                    onViewDetails={() => {
-                      setSelectedGame(contextMenu.game)
-                      setContextMenu(null)
-                    }}
-                    onRemove={() => {
-                      if (window.confirm(`Remove "${contextMenu.game.name}" from library?`)) {
-                        handleRemoveGame(contextMenu.game.id)
-                      }
-                    }}
+        {/* Main Content */}
+        <main className="main-content bg-mesh from-studio-950 to-studio-900">
+          {/* Header */}
+          <header className="sticky top-0 z-10 bg-studio-950/80 backdrop-blur-md border-b border-studio-800 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-studio-500" />
+                  <input
+                    type="text"
+                    placeholder="Search games..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-field pl-10"
                   />
-                )}
-              </>
-            )}
-          </div>
-        ) : activeView === 'settings' ? (
-          <SettingsView onClearGames={() => { setGames([]); addLogEntry('info', 'Game library cleared') }} />
-        ) : activeView === 'logs' ? (
-          <LogsView />
-        ) : null}
-      </main>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleScan}
+                  disabled={isScanning}
+                  className="btn-secondary flex items-center gap-2"
+                  title="Scan all libraries (Steam, GOG, Epic)"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+                  {isScanning ? 'Scanning...' : 'Scan Games'}
+                </button>
+                <button
+                  onClick={handleAddGame}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Game
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content - View Switching */}
+          {activeView === 'engines' ? (
+            <EngineManagerView />
+          ) : activeView === 'games' ? (
+            <div className="p-6">
+              {selectedGame ? (
+                <GameDetailView
+                  game={selectedGame}
+                  onBack={() => setSelectedGame(null)}
+                  onUpdate={(updated) => {
+                    setGames(prev => prev.map(g => g.id === updated.id ? updated : g))
+                    setSelectedGame(updated)
+                  }}
+                  onRemove={() => handleRemoveGame(selectedGame.id)}
+                />
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {filteredGames.map(game => (
+                      <GameCard
+                        key={game.id}
+                        game={game}
+                        onClick={() => setSelectedGame(game)}
+                        onContextMenu={(e, g) => setContextMenu({ x: e.clientX, y: e.clientY, game: g })}
+                      />
+                    ))}
+                  </div>
+
+                  {filteredGames.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                      <Gamepad2 className="w-16 h-16 text-studio-700 mb-4" />
+                      <h3 className="text-lg font-medium text-studio-400 mb-2">No games found</h3>
+                      <p className="text-studio-500 max-w-sm">
+                        Click "Scan Games" to detect installed games or "Add Game" to manually add a game.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Context Menu */}
+                  {contextMenu && (
+                    <ContextMenu
+                      x={contextMenu.x}
+                      y={contextMenu.y}
+                      game={contextMenu.game}
+                      onClose={() => setContextMenu(null)}
+                      onOpenFolder={() => handleOpenFolder(contextMenu.game)}
+                      onViewDetails={() => {
+                        setSelectedGame(contextMenu.game)
+                        setContextMenu(null)
+                      }}
+                      onRemove={() => {
+                        if (window.confirm(`Remove "${contextMenu.game.name}" from library?`)) {
+                          handleRemoveGame(contextMenu.game.id)
+                        }
+                      }}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          ) : activeView === 'settings' ? (
+            <SettingsView onClearGames={() => { setGames([]); addLogEntry('info', 'Game library cleared') }} />
+          ) : activeView === 'logs' ? (
+            <LogsView />
+          ) : null}
+        </main>
+      </div>
+
+      {/* Onboarding Wizard - shown on first launch */}
+      {showOnboarding && (
+        <OnboardingWizard
+          onComplete={() => setShowOnboarding(false)}
+          onScanGames={handleScan}
+        />
+      )}
+
+      {/* Command Palette - Ctrl+K */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNavigate={(view) => { setActiveView(view); setSelectedGame(null) }}
+        onScanGames={handleScan}
+        onAddGame={handleAddGame}
+      />
     </div>
   )
 }
@@ -475,15 +524,20 @@ function NavItem({
     <button
       onClick={onClick}
       className={`
-        w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-        transition-colors duration-150 border
+        w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+        transition-all duration-300 group relative overflow-hidden
         ${active
-          ? 'bg-accent-vulkan/15 text-studio-100 border-accent-vulkan/40'
-          : 'text-studio-400 border-transparent hover:bg-studio-800 hover:text-studio-200'
+          ? 'bg-gradient-to-r from-accent-vulkan/20 to-transparent text-white shadow-inner-highlight border border-white/5'
+          : 'text-studio-400 hover:text-white hover:bg-white/5 border border-transparent'
         }
       `}
     >
-      {icon}
+      {active && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent-vulkan rounded-r-full shadow-glow-sm shadow-accent-vulkan/50" />
+      )}
+      <span className={`transition-colors duration-200 ${active ? 'text-accent-vulkan' : 'group-hover:text-studio-200'}`}>
+        {icon}
+      </span>
       {label}
     </button>
   )
@@ -718,276 +772,334 @@ function EngineManagerView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-4 mb-6 border-b border-studio-800">
-        <button
-          onClick={() => setActiveTab('cached')}
-          className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'cached'
-            ? 'text-accent-vulkan border-accent-vulkan'
-            : 'text-studio-400 border-transparent hover:text-studio-200'
-            }`}
-        >
-          Cached Engines
-          {cachedEngines.length > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-studio-700 text-studio-300">
-              {cachedEngines.length}
-            </span>
+      {/* Tabs */}
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+        {/* Tabs */}
+        <div className="flex items-center gap-2 p-1 bg-studio-900/50 backdrop-blur-sm rounded-xl border border-white/5 w-fit">
+          <button
+            onClick={() => setActiveTab('cached')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 relative overflow-hidden ${activeTab === 'cached'
+              ? 'text-white shadow-lg shadow-black/20 ring-1 ring-white/10'
+              : 'text-studio-400 hover:text-studio-200 hover:bg-white/5'
+              }`}
+          >
+            {activeTab === 'cached' && (
+              <div className="absolute inset-0 bg-studio-800 rounded-lg -z-10" />
+            )}
+            Cached Engines
+            {cachedEngines.length > 0 && (
+              <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${activeTab === 'cached' ? 'bg-accent-vulkan text-white shadow-glow-sm' : 'bg-studio-800 text-studio-400'}`}>
+                {cachedEngines.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('available')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 relative overflow-hidden ${activeTab === 'available'
+              ? 'text-white shadow-lg shadow-black/20 ring-1 ring-white/10'
+              : 'text-studio-400 hover:text-studio-200 hover:bg-white/5'
+              }`}
+          >
+            {activeTab === 'available' && (
+              <div className="absolute inset-0 bg-studio-800 rounded-lg -z-10" />
+            )}
+            Available Versions
+          </button>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-3">
+          {/* Fork selector (only for Available tab) */}
+          {activeTab === 'available' && (
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedFork}
+                onChange={(e) => setSelectedFork(e.target.value as DxvkFork)}
+                className="input-field text-sm py-1.5 w-40"
+                disabled={isLoadingAvailable}
+              >
+                <option value="official">Official (doitsujin)</option>
+                <option value="gplasync">GPL Async (Ph42oN)</option>
+                <option value="nvapi">NVAPI (jp7677)</option>
+                <option value="vkd3d">Proton (HansKristian)</option>
+              </select>
+              <button
+                onClick={fetchAvailable}
+                disabled={isLoadingAvailable}
+                className="btn-icon bg-studio-800/50 border border-white/5"
+                title="Refresh versions"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoadingAvailable ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           )}
-        </button>
-        <button
-          onClick={() => setActiveTab('available')}
-          className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'available'
-            ? 'text-accent-vulkan border-accent-vulkan'
-            : 'text-studio-400 border-transparent hover:text-studio-200'
-            }`}
-        >
-          Available Versions
-        </button>
 
-        {/* Fork selector (only for Available tab) */}
-        {activeTab === 'available' && (
-          <div className="ml-auto flex items-center gap-2 pb-3">
-            <select
-              value={selectedFork}
-              onChange={(e) => setSelectedFork(e.target.value as DxvkFork)}
-              className="input-field text-sm py-1.5"
-              disabled={isLoadingAvailable}
-            >
-              <option value="official">Official (doitsujin)</option>
-              <option value="gplasync">GPL Async (Ph42oN)</option>
-              <option value="nvapi">NVAPI (jp7677)</option>
-              <option value="vkd3d">Proton (HansKristian)</option>
-            </select>
-            <button
-              onClick={fetchAvailable}
-              disabled={isLoadingAvailable}
-              className="btn-icon"
-              title="Refresh versions"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingAvailable ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        )}
-
-        {/* Actions for Cached tab */}
-        {activeTab === 'cached' && cachedEngines.length > 0 && (
-          <div className="ml-auto flex items-center gap-2 pb-3">
-            <button
-              onClick={fetchCached}
-              disabled={isLoadingCached}
-              className="btn-icon"
-              title="Refresh cache"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingCached ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={handleClearAll}
-              disabled={isLoadingCached}
-              className="btn-secondary text-sm flex items-center gap-1.5 text-accent-danger hover:bg-accent-danger/10"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All
-            </button>
-          </div>
-        )}
+          {/* Actions for Cached tab */}
+          {activeTab === 'cached' && cachedEngines.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchCached}
+                disabled={isLoadingCached}
+                className="btn-icon bg-studio-800/50 border border-white/5"
+                title="Refresh cache"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoadingCached ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleClearAll}
+                disabled={isLoadingCached}
+                className="btn-secondary text-sm flex items-center gap-1.5 text-accent-danger hover:bg-accent-danger/10 border-accent-danger/20"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cached Tab Content */}
-      {activeTab === 'cached' && (
-        <>
-          {isLoadingCached ? (
-            <div className="flex items-center justify-center py-20">
-              <RefreshCw className="w-8 h-8 text-accent-vulkan animate-spin" />
-            </div>
-          ) : cachedEngines.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Download className="w-16 h-16 text-studio-700 mb-4" />
-              <h3 className="text-lg font-medium text-studio-400 mb-2">No cached engines</h3>
-              <p className="text-studio-500 max-w-sm mb-6">
-                Download DXVK versions from the "Available Versions" tab, or they will be cached automatically when you install them to games.
-              </p>
-              <button
-                onClick={() => setActiveTab('available')}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Browse Available Versions
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {(['official', 'gplasync', 'nvapi', 'vkd3d'] as DxvkFork[]).map(fork => {
-                const engines = groupedCached[fork]
-                if (!engines || engines.length === 0) return null
+      {
+        activeTab === 'cached' && (
+          <>
+            {isLoadingCached ? (
+              <div className="flex items-center justify-center py-20">
+                <RefreshCw className="w-8 h-8 text-accent-vulkan animate-spin" />
+              </div>
+            ) : cachedEngines.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Download className="w-16 h-16 text-studio-700 mb-4" />
+                <h3 className="text-lg font-medium text-studio-400 mb-2">No cached engines</h3>
+                <p className="text-studio-500 max-w-sm mb-6">
+                  Download DXVK versions from the "Available Versions" tab, or they will be cached automatically when you install them to games.
+                </p>
+                <button
+                  onClick={() => setActiveTab('available')}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Browse Available Versions
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {(['official', 'gplasync', 'nvapi', 'vkd3d'] as DxvkFork[]).map(fork => {
+                  const engines = groupedCached[fork]
+                  if (!engines || engines.length === 0) return null
 
-                return (
-                  <div key={fork}>
-                    <h3 className="text-sm font-medium text-studio-400 mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-accent-vulkan"></span>
-                      {forkLabels[fork]}
-                      <span className="text-studio-500">({engines.length})</span>
-                    </h3>
-                    <div className="space-y-2">
-                      {engines.map((engine) => {
-                        const key = `${engine.fork}-${engine.version}`
-                        const deleting = isDeleting === key
+                  return (
+                    <div key={fork}>
+                      <h3 className="text-sm font-medium text-studio-400 mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-accent-vulkan"></span>
+                        {forkLabels[fork]}
+                        <span className="text-studio-500">({engines.length})</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {engines.map((engine) => {
+                          const key = `${engine.fork}-${engine.version}`
+                          const deleting = isDeleting === key
 
-                        return (
-                          <div key={key} className="glass-card p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-lg bg-accent-vulkan/20 flex items-center justify-center">
-                                <Check className="w-5 h-5 text-accent-success" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-accent-vulkan font-mono font-medium">v{engine.version}</span>
+                          return (
+                            <div key={key} className="glass-card hover:bg-studio-800/80 transition-colors p-4 flex items-center justify-between group">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-studio-800 to-studio-900 border border-white/5 flex items-center justify-center shadow-inner-highlight">
+                                  <Check className="w-5 h-5 text-accent-success drop-shadow-md" />
                                 </div>
-                                <p className="text-sm text-studio-500">{formatSize(engine.sizeBytes)}</p>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white font-mono font-medium tracking-tight">v{engine.version}</span>
+                                  </div>
+                                  <p className="text-sm text-studio-500">{formatSize(engine.sizeBytes)}</p>
+                                </div>
                               </div>
+                              <button
+                                onClick={() => handleDelete(engine.fork, engine.version)}
+                                disabled={deleting}
+                                className="btn-icon-subtle text-studio-400 hover:text-accent-danger hover:bg-accent-danger/10 hover:border-accent-danger/20 transition-all"
+                                title="Delete cached version"
+                              >
+                                {deleting ? (
+                                  <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
                             </div>
-                            <button
-                              onClick={() => handleDelete(engine.fork, engine.version)}
-                              disabled={deleting}
-                              className="btn-secondary flex items-center gap-2 text-accent-danger hover:bg-accent-danger/10"
-                            >
-                              {deleting ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                              Delete
-                            </button>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </>
-      )}
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )
+      }
 
       {/* Available Tab Content */}
-      {activeTab === 'available' && (
-        <>
-          {isLoadingAvailable ? (
-            <div className="flex items-center justify-center py-20">
-              <RefreshCw className="w-8 h-8 text-accent-vulkan animate-spin" />
-            </div>
-          ) : availableEngines.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertTriangle className="w-16 h-16 text-accent-warning mb-4" />
-              <h3 className="text-lg font-medium text-studio-400 mb-2">No versions available</h3>
-              <p className="text-studio-500 max-w-sm">
-                Could not fetch releases. This may be due to API rate limiting. Try again later.
-              </p>
-              <button
-                onClick={fetchAvailable}
-                className="btn-secondary mt-4 flex items-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Retry
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {availableEngines.map((engine, index) => {
-                const isDownloading = downloadingVersion === engine.version
-                const isCached = engine.cached
+      {
+        activeTab === 'available' && (
+          <>
+            {isLoadingAvailable ? (
+              <div className="flex items-center justify-center py-20">
+                <RefreshCw className="w-8 h-8 text-accent-vulkan animate-spin" />
+              </div>
+            ) : availableEngines.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertTriangle className="w-16 h-16 text-accent-warning mb-4" />
+                <h3 className="text-lg font-medium text-studio-400 mb-2">No versions available</h3>
+                <p className="text-studio-500 max-w-sm">
+                  Could not fetch releases. This may be due to API rate limiting. Try again later.
+                </p>
+                <button
+                  onClick={fetchAvailable}
+                  className="btn-secondary mt-4 flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableEngines.map((engine, index) => {
+                  const isDownloading = downloadingVersion === engine.version
+                  const isCached = engine.cached
 
-                return (
-                  <div key={engine.version} className="glass-card p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isCached ? 'bg-accent-success/20' : 'bg-studio-700'
-                          }`}>
-                          {isCached ? (
-                            <Check className="w-5 h-5 text-accent-success" />
-                          ) : (
-                            <Download className="w-5 h-5 text-studio-400" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-accent-vulkan font-mono font-medium">v{engine.version}</span>
-                            {index === 0 && (
-                              <span className="px-1.5 py-0.5 text-xs rounded bg-accent-vulkan/20 text-accent-vulkan">
-                                Latest
-                              </span>
-                            )}
-                            {isCached && (
-                              <span className="px-1.5 py-0.5 text-xs rounded bg-accent-success/20 text-accent-success">
-                                Cached
-                              </span>
+                  return (
+                    <div key={engine.version} className="glass-card hover:bg-studio-800/60 transition-colors p-4 group">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-inner-highlight border border-white/5 ${isCached ? 'bg-accent-success/10' : 'bg-studio-800'
+                            }`}>
+                            {isCached ? (
+                              <Check className="w-5 h-5 text-accent-success drop-shadow-md" />
+                            ) : (
+                              <Download className="w-5 h-5 text-studio-400" />
                             )}
                           </div>
-                          {engine.releaseDate && (
-                            <p className="text-sm text-studio-500">{formatDate(engine.releaseDate)}</p>
-                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-studio-100 font-mono font-medium">v{engine.version}</span>
+                              {index === 0 && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-accent-vulkan/20 text-accent-vulkan border border-accent-vulkan/20 shadow-glow-sm">
+                                  Latest
+                                </span>
+                              )}
+                              {isCached && (
+                                <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-accent-success/10 text-accent-success border border-accent-success/20">
+                                  Cached
+                                </span>
+                              )}
+                            </div>
+                            {engine.releaseDate && (
+                              <p className="text-sm text-studio-500">{formatDate(engine.releaseDate)}</p>
+                            )}
+                          </div>
                         </div>
+
+                        {isCached ? (
+                          <button
+                            onClick={() => handleDelete(selectedFork, engine.version)}
+                            disabled={isDeleting === `${selectedFork}-${engine.version}`}
+                            className="btn-icon-subtle text-studio-400 hover:text-accent-danger hover:bg-accent-danger/10 hover:border-accent-danger/20 transition-all"
+                            title="Delete from cache"
+                          >
+                            {isDeleting === `${selectedFork}-${engine.version}` ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDownload(engine.version, engine.downloadUrl)}
+                            disabled={isDownloading || !!downloadingVersion}
+                            className="btn-secondary hover:bg-accent-vulkan hover:text-white hover:border-accent-vulkan/50 group-hover:border-white/20 transition-all flex items-center gap-2"
+                          >
+                            {isDownloading ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                <span className="w-12 text-left">{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Download className="w-4 h-4" />
+                                Download
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
 
-                      {isCached ? (
-                        <button
-                          onClick={() => handleDelete(selectedFork, engine.version)}
-                          disabled={isDeleting === `${selectedFork}-${engine.version}`}
-                          className="btn-secondary flex items-center gap-2 text-accent-danger hover:bg-accent-danger/10"
-                        >
-                          {isDeleting === `${selectedFork}-${engine.version}` ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                          Delete
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleDownload(engine.version, engine.downloadUrl)}
-                          disabled={isDownloading || !!downloadingVersion}
-                          className="btn-primary flex items-center gap-2"
-                        >
-                          {isDownloading ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                              {downloadProgress > 0 ? `${downloadProgress}%` : 'Starting...'}
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-4 h-4" />
-                              Download
-                            </>
-                          )}
-                        </button>
+                      {/* Premium Progress Bar */}
+                      {isDownloading && downloadProgress > 0 && (
+                        <div className="mt-4 relative">
+                          <div className="h-1 bg-studio-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-vulkan shadow-glow-sm transition-all duration-300 relative"
+                              style={{ width: `${downloadProgress}%` }}
+                            >
+                              <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-r from-transparent to-white/30" />
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
-
-                    {/* Download Progress Bar */}
-                    {isDownloading && downloadProgress > 0 && (
-                      <div className="mt-3">
-                        <div className="h-1.5 bg-studio-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-accent-vulkan transition-all duration-300"
-                            style={{ width: `${downloadProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )
+      }
+    </div >
   )
 }
 
 // Settings View Component
 function SettingsView({ onClearGames }: { onClearGames: () => void }) {
+  const [activeTab, setActiveTab] = useState<'general' | 'integrations' | 'storage' | 'about'>('general')
   const [defaultFork, setDefaultFork] = useState<DxvkFork>('official')
   const [cacheSize, setCacheSize] = useState<string>('Calculating...')
+
+  // IGDB State
+  const [igdbClientId, setIgdbClientId] = useState('')
+  const [igdbClientSecret, setIgdbClientSecret] = useState('')
+  const [igdbStatus, setIgdbStatus] = useState<{ success?: boolean; message?: string }>({})
+  const [isIgdbLoading, setIsIgdbLoading] = useState(false)
+
+  // ... (Keep existing useEffects and handlers) ...
+  useEffect(() => {
+    if (!isElectron) return
+    window.electronAPI.igdbGetCredentials().then(creds => {
+      if (creds) {
+        setIgdbClientId(creds.clientId)
+        setIgdbClientSecret(creds.clientSecret)
+      }
+    })
+  }, [])
+
+  const handleSaveIgdb = async () => {
+    setIsIgdbLoading(true)
+    setIgdbStatus({})
+    try {
+      await window.electronAPI.igdbSetCredentials({ clientId: igdbClientId, clientSecret: igdbClientSecret })
+      const test = await window.electronAPI.igdbTestConnection()
+      if (test.success) {
+        setIgdbStatus({ success: true, message: 'Connected to IGDB successfully!' })
+      } else {
+        setIgdbStatus({ success: false, message: 'Saved, but connection failed: ' + test.message })
+      }
+    } catch (e) {
+      setIgdbStatus({ success: false, message: 'Error: ' + (e as Error).message })
+    } finally {
+      setIsIgdbLoading(false)
+    }
+  }
+
+
 
   useEffect(() => {
     if (!isElectron) return
@@ -1027,169 +1139,290 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
         <p className="text-studio-400 mt-1">Configure DXVK Studio preferences</p>
       </div>
 
-      <div className="space-y-6 max-w-2xl mx-auto">
-        {/* Preferences Section */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
-            <Settings className="w-5 h-5 text-accent-vulkan" />
-            Preferences
-          </h3>
+      {/* Settings Navigation Tabs */}
+      <div className="flex items-center gap-2 mb-8 border-b border-white/5 pb-1 w-full overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('general')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-1.5 whitespace-nowrap ${activeTab === 'general'
+            ? 'text-accent-vulkan border-accent-vulkan'
+            : 'text-studio-400 border-transparent hover:text-studio-200'
+            }`}
+        >
+          General
+        </button>
+        <button
+          onClick={() => setActiveTab('integrations')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-1.5 whitespace-nowrap ${activeTab === 'integrations'
+            ? 'text-accent-vulkan border-accent-vulkan'
+            : 'text-studio-400 border-transparent hover:text-studio-200'
+            }`}
+        >
+          Integrations
+        </button>
+        <button
+          onClick={() => setActiveTab('storage')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-1.5 whitespace-nowrap ${activeTab === 'storage'
+            ? 'text-accent-vulkan border-accent-vulkan'
+            : 'text-studio-400 border-transparent hover:text-studio-200'
+            }`}
+        >
+          Storage
+        </button>
+        <button
+          onClick={() => setActiveTab('about')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-1.5 whitespace-nowrap ${activeTab === 'about'
+            ? 'text-accent-vulkan border-accent-vulkan'
+            : 'text-studio-400 border-transparent hover:text-studio-200'
+            }`}
+        >
+          About & Support
+        </button>
+      </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-studio-400 mb-2">Default DXVK Fork</label>
-              <select
-                value={defaultFork}
-                onChange={(e) => setDefaultFork(e.target.value as DxvkFork)}
-                className="input-field max-w-xs"
-              >
-                {Object.entries(forkLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-              <p className="text-xs text-studio-500 mt-1">
-                Fork to use by default when installing DXVK
+      <div className="max-w-2xl mx-auto min-h-[400px]">
+        {/* General Tab */}
+        {activeTab === 'general' && (
+          <div className="glass-card p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-accent-vulkan" />
+              Preferences
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-studio-400 mb-2">Default DXVK Fork</label>
+                <select
+                  value={defaultFork}
+                  onChange={(e) => setDefaultFork(e.target.value as DxvkFork)}
+                  className="input-field max-w-xs"
+                >
+                  {Object.entries(forkLabels).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-studio-500 mt-1">
+                  Fork to use by default when installing DXVK
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Storage Tab */}
+        {activeTab === 'storage' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+                <Download className="w-5 h-5 text-accent-vulkan" />
+                Cache Storage
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-studio-300">Cached Engines</p>
+                  <p className="text-xs text-studio-500">Downloaded DXVK versions</p>
+                </div>
+                <span className="text-studio-200 font-medium">{cacheSize}</span>
+              </div>
+            </div>
+
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-accent-vulkan" />
+                Data Management
+              </h3>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-studio-300">Clear Game Library</p>
+                    <p className="text-xs text-studio-500">Remove all games from the library (keeps cache)</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Remove all games from the library? This cannot be undone.')) {
+                        onClearGames()
+                      }
+                    }}
+                    className="btn-secondary text-sm text-accent-danger hover:bg-accent-danger/10"
+                  >
+                    Clear Library
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-studio-300">Open Cache Folder</p>
+                    <p className="text-xs text-studio-500">View cached DXVK versions on disk</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (isElectron) {
+                        const engines = await window.electronAPI.getAllCachedEngines()
+                        if (engines.length > 0) {
+                          // Open parent folder of first cached engine
+                          const path = engines[0].path
+                          const parentPath = path.split('\\').slice(0, -1).join('\\')
+                          window.electronAPI.openPath(parentPath)
+                        }
+                      }
+                    }}
+                    className="btn-secondary text-sm"
+                  >
+                    Open Folder
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Integrations Tab */}
+        {activeTab === 'integrations' && (
+          <div className="glass-card p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+              <Gamepad2 className="w-5 h-5 text-accent-vulkan" />
+              IGDB Integration
+            </h3>
+
+            <div className="space-y-4">
+              <p className="text-sm text-studio-400">
+                Connect to Internet Game Database (IGDB) to fetch game covers and metadata.
+                You need a Twitch Developer account to get these credentials.
+                <button
+                  onClick={() => window.open('https://dev.twitch.tv/console/apps', '_blank')}
+                  className="ml-1 text-accent-vulkan hover:underline focus:outline-none"
+                >
+                  Get Credentials
+                </button>
               </p>
-            </div>
-          </div>
-        </div>
 
-        {/* Storage Section */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
-            <Download className="w-5 h-5 text-accent-vulkan" />
-            Storage
-          </h3>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-studio-300">Cached Engines</p>
-                <p className="text-xs text-studio-500">Downloaded DXVK versions</p>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm text-studio-400 mb-2">Client ID</label>
+                  <input
+                    type="text"
+                    value={igdbClientId}
+                    onChange={(e) => setIgdbClientId(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="Twitch App Client ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-studio-400 mb-2">Client Secret</label>
+                  <input
+                    type="password"
+                    value={igdbClientSecret}
+                    onChange={(e) => setIgdbClientSecret(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="Twitch App Client Secret"
+                  />
+                </div>
               </div>
-              <span className="text-studio-200 font-medium">{cacheSize}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Data Management Section */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
-            <Trash2 className="w-5 h-5 text-accent-vulkan" />
-            Data Management
-          </h3>
+              {igdbStatus.message && (
+                <div className={`p-3 rounded-lg text-sm flex items-start gap-2 ${igdbStatus.success ? 'bg-accent-success/10 text-accent-success' : 'bg-accent-danger/10 text-accent-danger'}`}>
+                  {igdbStatus.success ? <Check className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}
+                  {igdbStatus.message}
+                </div>
+              )}
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-studio-300">Clear Game Library</p>
-                <p className="text-xs text-studio-500">Remove all games from the library (keeps cache)</p>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm('Remove all games from the library? This cannot be undone.')) {
-                    onClearGames()
-                  }
-                }}
-                className="btn-secondary text-sm text-accent-danger hover:bg-accent-danger/10"
-              >
-                Clear Library
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-studio-300">Open Cache Folder</p>
-                <p className="text-xs text-studio-500">View cached DXVK versions on disk</p>
-              </div>
-              <button
-                onClick={async () => {
-                  if (isElectron) {
-                    const engines = await window.electronAPI.getAllCachedEngines()
-                    if (engines.length > 0) {
-                      // Open parent folder of first cached engine
-                      const path = engines[0].path
-                      const parentPath = path.split('\\').slice(0, -1).join('\\')
-                      window.electronAPI.openPath(parentPath)
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSaveIgdb}
+                  disabled={isIgdbLoading || !igdbClientId || !igdbClientSecret}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {isIgdbLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Save & Test
+                </button>
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Clear IGDB credentials?')) {
+                      await window.electronAPI.igdbClearCredentials()
+                      setIgdbClientId('')
+                      setIgdbClientSecret('')
+                      setIgdbStatus({ success: true, message: 'Credentials cleared' })
                     }
-                  }
-                }}
-                className="btn-secondary text-sm"
-              >
-                Open Folder
-              </button>
+                  }}
+                  className="btn-secondary text-sm"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Support Section */}
-        <div className="glass-card p-6 bg-gradient-to-br from-accent-vulkan/10 to-transparent border-accent-vulkan/20">
-          <h3 className="text-lg font-semibold text-studio-100 mb-4 flex items-center gap-2">
-            <Heart className="w-5 h-5 text-accent-danger fill-accent-danger" />
-            Support Project
-          </h3>
+        {/* About Tab */}
+        {activeTab === 'about' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="glass-card p-6 bg-gradient-to-br from-accent-vulkan/10 to-transparent border-accent-vulkan/20">
+              <h3 className="text-lg font-semibold text-studio-100 mb-4 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-accent-danger fill-accent-danger" />
+                Support Project
+              </h3>
 
-          <p className="text-studio-300 transform mb-6">
-            DXVK Studio is open source and free. If you enjoy using it, consider supporting development!
-          </p>
+              <p className="text-studio-300 transform mb-6">
+                DXVK Studio is open source and free. If you enjoy using it, consider supporting development!
+              </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => window.open('https://github.com/sponsors/Zendevve', '_blank')}
-              className="btn-primary flex items-center justify-center gap-2 py-3"
-            >
-              <Heart className="w-4 h-4" />
-              GitHub Sponsors
-            </button>
-            <button
-              onClick={() => window.open('https://ko-fi.com', '_blank')}
-              className="btn-secondary flex items-center justify-center gap-2 py-3"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Donate via Ko-fi
-            </button>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => window.open('https://github.com/sponsors/Zendevve', '_blank')}
+                  className="btn-primary flex items-center justify-center gap-2 py-3"
+                >
+                  <Heart className="w-4 h-4" />
+                  GitHub Sponsors
+                </button>
+                <button
+                  onClick={() => window.open('https://ko-fi.com', '_blank')}
+                  className="btn-secondary flex items-center justify-center gap-2 py-3"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Donate via Ko-fi
+                </button>
+              </div>
 
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => window.open('https://github.com/Zendevve/dxvk-studio', '_blank')}
-              className="text-xs text-studio-500 hover:text-accent-vulkan transition-colors"
-            >
-              Star on GitHub
-            </button>
-          </div>
-        </div>
-
-
-        {/* About Section */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-accent-vulkan" />
-            About
-          </h3>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-studio-300">Version</p>
-              <span className="text-studio-200 font-mono">1.0.0</span>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => window.open('https://github.com/Zendevve/dxvk-studio', '_blank')}
+                  className="text-xs text-studio-500 hover:text-accent-vulkan transition-colors"
+                >
+                  Star on GitHub
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <p className="text-studio-300">Platform</p>
-              <span className="text-studio-200">Windows</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-studio-300">Framework</p>
-              <span className="text-studio-200">Electron 33</span>
-            </div>
-          </div>
 
-          <div className="mt-4 pt-4 border-t border-studio-700">
-            <p className="text-sm text-studio-500">
-              DXVK Studio helps you manage DXVK installations across your game library.
-              Built with Electron, React, and TypeScript.
-            </p>
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-accent-vulkan" />
+                About
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-studio-300">Version</p>
+                  <span className="text-studio-200 font-mono">1.0.0</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-studio-300">Platform</p>
+                  <span className="text-studio-200">Windows</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-studio-300">Framework</p>
+                  <span className="text-studio-200">Electron 33</span>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-studio-700">
+                <p className="text-sm text-studio-500">
+                  DXVK Studio helps you manage DXVK installations across your game library.
+                  Built with Electron, React, and TypeScript.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -1363,9 +1596,9 @@ function GameCard({
   onClick: () => void
   onContextMenu: (e: React.MouseEvent, game: Game) => void
 }) {
-  const steamIconUrl = game.steamAppId
+  const displayImageUrl = game.coverUrl || (game.steamAppId
     ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`
-    : null
+    : null)
 
   return (
     <div
@@ -1374,67 +1607,76 @@ function GameCard({
         e.preventDefault()
         onContextMenu(e, game)
       }}
-      className="glass-card-hover group cursor-pointer overflow-hidden"
+      className="glass-card group cursor-pointer overflow-hidden relative transition-all duration-300 hover:scale-[1.02] hover:shadow-glow-md hover:shadow-accent-vulkan/20 hover:border-accent-vulkan/30"
     >
+      {/* Hover Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-accent-vulkan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10" />
+
       {/* Game Art */}
       <div className="relative aspect-[460/215] bg-studio-800 overflow-hidden">
-        {steamIconUrl ? (
+        {displayImageUrl ? (
           <img
-            src={steamIconUrl}
+            src={displayImageUrl}
             alt={game.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none'
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Gamepad2 className="w-12 h-12 text-studio-600" />
+          <div className="w-full h-full flex items-center justify-center bg-studio-900">
+            <Gamepad2 className="w-12 h-12 text-studio-700" />
           </div>
         )}
 
+        {/* Top Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent opacity-60" />
+
         {/* Architecture Badge */}
-        <div className="absolute top-2 right-2">
-          <span className={game.architecture === '32' ? 'badge-32bit' : game.architecture === '64' ? 'badge-64bit' : 'badge'}>
+        <div className="absolute top-3 right-3 z-20">
+          <span className={`${game.architecture === '32' ? 'badge-32bit' : game.architecture === '64' ? 'badge-64bit' : 'badge bg-studio-800/80 text-studio-400 border border-white/10'} backdrop-blur-md shadow-sm`}>
             {game.architecture === 'unknown' ? '?' : `${game.architecture}-bit`}
           </span>
         </div>
 
-        {/* Status Indicator with Icon Badge (HIG: not color-only) */}
-        <div className="absolute bottom-2 left-2 flex items-center gap-2">
+        {/* Status Indicator Area */}
+        <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent z-20 flex items-center gap-2">
           {game.dxvkStatus === 'active' && (
-            <span className="flex items-center gap-1 text-xs text-white/90 bg-accent-success/80 px-1.5 py-0.5 rounded" title="DXVK Active">
-              <CircleDot className="w-3 h-3" aria-hidden="true" />
-              <span className="sr-only">DXVK Active</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-accent-success bg-accent-success/10 border border-accent-success/20 px-2 py-0.5 rounded-full backdrop-blur-sm shadow-glow-sm shadow-accent-success/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-success shadow-glow-sm" />
+              DXVK Active
             </span>
           )}
           {game.dxvkStatus === 'inactive' && (
-            <span className="flex items-center gap-1 text-xs text-white/70 bg-studio-600/80 px-1.5 py-0.5 rounded" title="DXVK Not Installed">
-              <Circle className="w-3 h-3" aria-hidden="true" />
-              <span className="sr-only">DXVK Not Installed</span>
+            <span className="flex items-center gap-1.5 text-xs text-studio-400 bg-studio-900/60 border border-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm">
+              <div className="w-1.5 h-1.5 rounded-full bg-studio-600" />
+              Not Installed
             </span>
           )}
           {(game.dxvkStatus === 'outdated' || game.dxvkStatus === 'corrupt') && (
-            <span className="flex items-center gap-1 text-xs text-white/90 bg-accent-warning/80 px-1.5 py-0.5 rounded" title="DXVK Needs Attention">
-              <CircleAlert className="w-3 h-3" aria-hidden="true" />
-              <span className="sr-only">DXVK Needs Attention</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-accent-warning bg-accent-warning/10 border border-accent-warning/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
+              <AlertTriangle className="w-3 h-3" />
+              Attention
             </span>
           )}
-          {game.dxvkVersion && (
-            <span className="text-xs text-white/80 bg-black/50 px-1.5 py-0.5 rounded">
-              {game.dxvkVersion}
+
+          {/* Version Pill if active */}
+          {(game.dxvkStatus === 'active' && game.dxvkVersion) && (
+            <span className="text-xs font-mono text-studio-300 ml-auto bg-black/40 px-1.5 py-0.5 rounded border border-white/10">
+              v{game.dxvkVersion}
             </span>
           )}
         </div>
       </div>
 
       {/* Game Info */}
-      <div className="p-3">
-        <h3 className="font-medium text-studio-200 truncate group-hover:text-studio-100 transition-colors">
+      <div className="p-4 relative z-20">
+        <h3 className="font-semibold text-studio-100 truncate group-hover:text-accent-vulkan transition-colors text-base">
           {game.name}
         </h3>
-        <p className="text-xs text-studio-500 truncate mt-1">
-          {game.platform === 'steam' ? 'Steam' : game.platform === 'gog' ? 'GOG Galaxy' : game.platform === 'epic' ? 'Epic Games' : 'Manual'} • {game.executable || 'No executable'}
+        <p className="text-xs text-studio-500 truncate mt-1 flex items-center gap-1.5">
+          <span className="w-1 h-1 rounded-full bg-studio-600" />
+          {game.platform === 'steam' ? 'Steam' : game.platform === 'gog' ? 'GOG Galaxy' : game.platform === 'epic' ? 'Epic Games' : 'Manual'}
         </p>
       </div>
     </div>
@@ -1784,16 +2026,28 @@ function GameDetailView({
   const [searchTerm, setSearchTerm] = useState(game.name)
   const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; imageUrl: string }>>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [searchSource, setSearchSource] = useState<'steam' | 'igdb'>('steam')
+  const [isIgdbConfigured, setIsIgdbConfigured] = useState(false)
 
-  // Anti-cheat detection state
+  // Anti-Cheat State
   const [antiCheatWarning, setAntiCheatWarning] = useState<{
     hasAntiCheat: boolean
     highRisk: boolean
     detected: string[]
   } | null>(null)
   const [showAntiCheatOverride, setShowAntiCheatOverride] = useState(false)
+
+  // Config Modals
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [showVkd3dConfigModal, setShowVkd3dConfigModal] = useState(false)
+
+  // Check IGDB configuration
+  useEffect(() => {
+    if (!isElectron) return
+    window.electronAPI.igdbIsConfigured().then(configured => {
+      setIsIgdbConfigured(configured)
+    })
+  }, [])
 
   // Debounced live search
   useEffect(() => {
@@ -1802,15 +2056,29 @@ function GameDetailView({
     const timer = setTimeout(async () => {
       setIsSearching(true)
       try {
-        const results = await window.electronAPI.searchMetadataMultiple(searchTerm)
+        let results: Array<{ id: number; name: string; imageUrl: string }> = []
+
+        if (searchSource === 'steam') {
+          results = await window.electronAPI.searchMetadataMultiple(searchTerm)
+        } else {
+          // IGDB Search
+          const igdbResults = await window.electronAPI.igdbSearch(searchTerm)
+          results = igdbResults.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            imageUrl: r.coverUrl || ''
+          }))
+        }
         setSearchResults(results)
+      } catch (e) {
+        setSearchResults([])
       } finally {
         setIsSearching(false)
       }
-    }, 300)
+    }, 500)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, showSearchModal])
+  }, [searchTerm, showSearchModal, searchSource])
 
   // Scan for anti-cheat on mount
   useEffect(() => {
@@ -1943,6 +2211,37 @@ function GameDetailView({
             )}
           </div>
 
+          {/* About Section */}
+          {(game.summary || game.genres) && (
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
+                <Info className="w-5 h-5 text-accent-vulkan" />
+                About
+              </h3>
+
+              {game.summary && (
+                <p className="text-studio-300 mb-4 leading-relaxed text-sm">
+                  {game.summary}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {game.genres?.map(genre => (
+                  <span key={genre} className="px-2 py-1 rounded bg-studio-700 text-xs text-studio-300 border border-studio-600">
+                    {genre}
+                  </span>
+                ))}
+              </div>
+
+              {game.developers && game.developers.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-studio-700 flex flex-col gap-1">
+                  <span className="text-xs text-studio-500 uppercase tracking-wider">Developers</span>
+                  <span className="text-studio-200 text-sm">{game.developers.join(', ')}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Engine Management */}
           <EngineManagementCard game={game} onUpdate={onUpdate} isElectron={isElectron} installDisabled={installDisabled} />
         </div>
@@ -2000,13 +2299,83 @@ function GameDetailView({
       {showSearchModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in">
           <div className="glass-card max-w-lg w-full mx-4 p-6 max-h-[80vh] flex flex-col">
-            <h3 className="text-xl font-semibold text-studio-100 mb-4">Search Steam</h3>
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field w-full mb-4" placeholder="Start typing to search..." autoFocus />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-studio-100">Search Metadata</h3>
+              {isIgdbConfigured && (
+                <div className="flex bg-studio-800 p-1 rounded-lg">
+                  <button
+                    onClick={() => { setSearchSource('steam'); setSearchResults([]) }}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${searchSource === 'steam' ? 'bg-studio-600 text-white' : 'text-studio-400 hover:text-studio-200'}`}
+                  >
+                    Steam
+                  </button>
+                  <button
+                    onClick={() => { setSearchSource('igdb'); setSearchResults([]) }}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${searchSource === 'igdb' ? 'bg-accent-vulkan text-white' : 'text-studio-400 hover:text-studio-200'}`}
+                  >
+                    IGDB
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-field w-full mb-4"
+              placeholder={`Search ${searchSource === 'steam' ? 'Steam' : 'IGDB'}...`}
+              autoFocus
+            />
+
             <div className="flex-1 overflow-y-auto space-y-2 min-h-[200px]">
               {searchResults.length === 0 && !isSearching && (<p className="text-studio-500 text-center py-8">No results found</p>)}
+              {isSearching && (
+                <div className="flex justify-center py-8">
+                  <RefreshCw className="w-8 h-8 text-studio-500 animate-spin" />
+                </div>
+              )}
               {searchResults.map(result => (
-                <button key={result.id} onClick={() => { onUpdate({ ...game, name: result.name, steamAppId: result.id.toString(), updatedAt: new Date().toISOString() }); setShowSearchModal(false) }} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-studio-700/50 text-left">
-                  <img src={result.imageUrl} alt="" className="w-16 h-9 object-cover rounded" />
+                <button
+                  key={result.id}
+                  onClick={async () => {
+                    if (searchSource === 'steam') {
+                      onUpdate({ ...game, name: result.name, steamAppId: result.id.toString(), updatedAt: new Date().toISOString() });
+                      setShowSearchModal(false);
+                    } else {
+                      // IGDB Fetch Details
+                      setIsSearching(true);
+                      try {
+                        const details = await window.electronAPI.igdbGetDetails(result.id)
+                        if (details) {
+                          onUpdate({
+                            ...game,
+                            name: details.name,
+                            igdbId: details.id,
+                            summary: details.summary,
+                            coverUrl: details.coverUrl,
+                            genres: details.genres,
+                            developers: details.developers,
+                            updatedAt: new Date().toISOString()
+                          })
+                        }
+                      } catch (e) {
+                        console.error('Failed to fetch details', e)
+                      } finally {
+                        setIsSearching(false);
+                        setShowSearchModal(false);
+                      }
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-studio-700/50 text-left"
+                >
+                  {result.imageUrl ? (
+                    <img src={result.imageUrl} alt="" className="w-16 h-9 object-cover rounded" />
+                  ) : (
+                    <div className="w-16 h-9 bg-studio-800 rounded flex items-center justify-center">
+                      <Gamepad2 className="w-4 h-4 text-studio-600" />
+                    </div>
+                  )}
                   <span className="text-studio-200 flex-1 truncate">{result.name}</span>
                 </button>
               ))}

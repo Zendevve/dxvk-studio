@@ -32,7 +32,19 @@ import {
 } from './services/deployer'
 import { detectAntiCheat, getAntiCheatSummary } from './services/anti-cheat'
 import { getAllProfiles, saveProfile, deleteProfile } from './services/profile-manager'
-import type { Game, DxvkFork, DxvkConfig, DxvkProfile, DxvkStatus, Vkd3dConfig } from '../src/shared/types'
+import {
+  getIgdbCredentials,
+  setIgdbCredentials,
+  clearIgdbCredentials
+} from './services/settings-store'
+import {
+  testConnection as igdbTestConnection,
+  isIgdbConfigured,
+  searchGames as igdbSearchGames,
+  getGameDetails as igdbGetGameDetails,
+  getGameBySteamId
+} from './services/igdb-service'
+import type { Game, DxvkFork, DxvkConfig, DxvkProfile, DxvkStatus, Vkd3dConfig, IgdbCredentials } from '../src/shared/types'
 
 // ============================================
 // Build Paths
@@ -57,6 +69,8 @@ function createWindow() {
     icon: join(process.env.VITE_PUBLIC!, 'icon.png'),
     backgroundColor: '#0a0a0b',
     show: false,
+    frame: false, // Frameless for custom chrome
+    titleBarStyle: 'hidden', // Hide native title bar
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -107,6 +121,30 @@ app.on('window-all-closed', () => {
 })
 
 // ============================================
+// IPC Handlers - Window Controls
+// ============================================
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close()
+})
+
+ipcMain.handle('window:isMaximized', () => {
+  return mainWindow?.isMaximized() ?? false
+})
+
+// ============================================
 // Security Helpers
 // ============================================
 
@@ -122,14 +160,16 @@ function isValidGamePath(path: string): boolean {
   try {
     const normalized = resolve(path)
 
-    // Basic blocklist - block system directories and their subdirectories
+    // Only block actual Windows system directories, NOT Program Files
+    // (Steam and most games install to Program Files!)
     const blockList = [
       'C:\\Windows',
-      'C:\\Program Files',
-      'C:\\Program Files (x86)',
+      'C:\\Windows\\System32',
+      'C:\\Windows\\SysWOW64',
       '/bin',
       '/usr',
-      '/etc'
+      '/etc',
+      '/System'
     ]
 
     // Check if path matches or is inside a blocked directory
@@ -482,6 +522,7 @@ ipcMain.handle('dxvk:checkStatus', async (_, gamePath: string) => {
   }
 })
 
+// Detect existing DXVK/VKD3D DLLs that weren't installed by DXVK Studio
 ipcMain.handle('dxvk:detectManual', async (_, gamePath: string) => {
   if (!isValidGamePath(gamePath)) {
     return { detected: false, dxvk: { found: false, dlls: [] }, vkd3d: { found: false, dlls: [] } }
@@ -571,5 +612,51 @@ ipcMain.handle('anticheat:detect', async (_, gamePath: string) => {
 ipcMain.handle('anticheat:summary', async (_, gamePath: string) => {
   if (!isValidGamePath(gamePath)) return { hasAntiCheat: false, highRisk: false, detected: [] }
   return getAntiCheatSummary(gamePath)
+})
+
+// ============================================
+// IPC Handlers - IGDB Integration
+// ============================================
+
+ipcMain.handle('igdb:getCredentials', async () => {
+  return getIgdbCredentials()
+})
+
+ipcMain.handle('igdb:setCredentials', async (_, credentials: IgdbCredentials) => {
+  try {
+    setIgdbCredentials(credentials)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+ipcMain.handle('igdb:clearCredentials', async () => {
+  try {
+    clearIgdbCredentials()
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+ipcMain.handle('igdb:testConnection', async () => {
+  return igdbTestConnection()
+})
+
+ipcMain.handle('igdb:isConfigured', async () => {
+  return isIgdbConfigured()
+})
+
+ipcMain.handle('igdb:search', async (_, query: string) => {
+  return igdbSearchGames(query)
+})
+
+ipcMain.handle('igdb:getDetails', async (_, igdbId: number) => {
+  return igdbGetGameDetails(igdbId)
+})
+
+ipcMain.handle('igdb:matchBySteamId', async (_, steamAppId: string) => {
+  return getGameBySteamId(steamAppId)
 })
 

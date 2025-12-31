@@ -39,10 +39,11 @@ export function ConfigEditorModal({ isOpen, gamePath, onClose, onSave }: ConfigE
 
   const loadProfiles = async () => {
     try {
-      const all = await window.electronAPI.getAllProfiles()
-      setProfiles(all)
+      const userProfiles = await window.electronAPI.getAllProfiles()
+      setProfiles(userProfiles)
     } catch (err) {
       console.error('Failed to load profiles:', err)
+      setProfiles([])
     }
   }
 
