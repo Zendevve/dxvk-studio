@@ -1,7 +1,7 @@
 {
   "name": "dxvk-studio",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Professional DXVK management suite for Windows",
   "author": "Zendevve",
   "license": "AGPL-3.0",
