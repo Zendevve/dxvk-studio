@@ -70,7 +70,7 @@ You must have the following installed and properly configured:
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| **Node.js** | v20.0.0+ (LTS) | [Download](https://nodejs.org/) — includes npm. Verify with `node -v` |
+| **Node.js** inportant -> | v20.0.0+ (LTS) | [Download](https://nodejs.org/) — includes npm. Verify with `node -v` |
 | **npm** | v10.0.0+ | Comes with Node.js. Verify with `npm -v` |
 | **Git** | Latest | [Download](https://git-scm.com/download/win) — required for cloning |
 | **Python** | 3.10+ | [Download](https://python.org) — required by node-gyp for native modules |
