@@ -330,7 +330,7 @@ function App() {
               </div>
               <div>
                 <h1 className="font-bold text-lg text-white tracking-tight">DXVK Studio</h1>
-                <p className="text-xs text-studio-400 font-medium">Pro Edition v{__APP_VERSION__}</p>
+                <p className="text-xs text-studio-500 font-medium">by <span className="text-accent-vulkan">Zendevve</span></p>
               </div>
             </div>
           </div>
@@ -1397,11 +1397,25 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
               </div>
             </div>
 
-            <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-studio-200 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-accent-vulkan" />
-                About
-              </h3>
+            <div className="glass-card p-6 border-accent-vulkan/20">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-studio-100 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-accent-vulkan" />
+                    About DXVK Studio
+                  </h3>
+                  <p className="text-sm text-studio-400 mt-1">Made by <span className="text-accent-vulkan font-medium">Zendevve</span></p>
+                </div>
+                <a
+                  href="https://guinto2.gumroad.com/l/dxvkstudio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary text-xs flex items-center gap-1.5 hover:border-accent-vulkan/50"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Official Store
+                </a>
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1423,6 +1437,22 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
                   DXVK Studio helps you manage DXVK installations across your game library.
                   Built with Electron, React, and TypeScript.
                 </p>
+                <div className="mt-4 pt-4 border-t border-studio-700/50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-studio-600">
+                      © 2024-2026 <span className="text-studio-400 font-medium">Zendevve</span>. All rights reserved.
+                    </p>
+                    <a
+                      href="https://guinto2.gumroad.com/l/dxvkstudio"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent-vulkan hover:text-accent-vulkan/80 transition-colors flex items-center gap-1"
+                    >
+                      Official builds only
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
