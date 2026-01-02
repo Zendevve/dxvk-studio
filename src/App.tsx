@@ -23,6 +23,7 @@ import {
 import type { Game, DxvkFork } from './shared/types'
 
 import {
+  AttributionModal,
   ContextMenu,
   ConfigEditorModal,
   Vkd3dConfigModal,
@@ -102,6 +103,21 @@ function App() {
 
   // Command Palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false)
+
+  // Attribution modal state - show once per day
+  const [showAttribution, setShowAttribution] = useState(() => {
+    const lastShown = localStorage.getItem('dxvk-studio-attribution-shown')
+    if (!lastShown) return true
+    const lastDate = new Date(lastShown)
+    const today = new Date()
+    return lastDate.toDateString() !== today.toDateString()
+  })
+
+  // Mark attribution as shown for today
+  const hideAttribution = () => {
+    localStorage.setItem('dxvk-studio-attribution-shown', new Date().toISOString())
+    setShowAttribution(false)
+  }
 
   // Global keyboard shortcut for Command Palette (Ctrl+K)
   useEffect(() => {
@@ -330,7 +346,15 @@ function App() {
               </div>
               <div>
                 <h1 className="font-bold text-lg text-white tracking-tight">DXVK Studio</h1>
-                <p className="text-xs text-studio-500 font-medium">by <span className="text-accent-vulkan">Zendevve</span></p>
+                <p className="text-xs text-studio-500 font-medium">
+                  by{' '}
+                  <button
+                    onClick={() => window.open('https://guinto2.gumroad.com/l/dxvkstudio', '_blank')}
+                    className="text-accent-vulkan hover:text-accent-vulkan/80 transition-colors underline decoration-accent-vulkan/30 hover:decoration-accent-vulkan/60"
+                  >
+                    Zendevve
+                  </button>
+                </p>
               </div>
             </div>
           </div>
@@ -508,6 +532,11 @@ function App() {
         onScanGames={handleScan}
         onAddGame={handleAddGame}
       />
+
+      {/* Attribution Modal */}
+      {showAttribution && (
+        <AttributionModal onClose={hideAttribution} />
+      )}
     </div>
   )
 }
@@ -1404,7 +1433,15 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
                     <FileText className="w-5 h-5 text-accent-vulkan" />
                     About DXVK Studio
                   </h3>
-                  <p className="text-sm text-studio-400 mt-1">Made by <span className="text-accent-vulkan font-medium">Zendevve</span></p>
+                  <p className="text-sm text-studio-400 mt-1">
+                    Made by{' '}
+                    <button
+                      onClick={() => window.open('https://guinto2.gumroad.com/l/dxvkstudio', '_blank')}
+                      className="text-accent-vulkan hover:text-accent-vulkan/80 font-medium transition-colors underline decoration-accent-vulkan/30 hover:decoration-accent-vulkan/60"
+                    >
+                      Zendevve
+                    </button>
+                  </p>
                 </div>
                 <a
                   href="https://guinto2.gumroad.com/l/dxvkstudio"
@@ -1440,7 +1477,14 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
                 <div className="mt-4 pt-4 border-t border-studio-700/50">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-studio-600">
-                      © 2024-2026 <span className="text-studio-400 font-medium">Zendevve</span>. All rights reserved.
+                      © 2024-2026{' '}
+                      <button
+                        onClick={() => window.open('https://guinto2.gumroad.com/l/dxvkstudio', '_blank')}
+                        className="text-studio-400 hover:text-accent-vulkan font-medium transition-colors underline decoration-transparent hover:decoration-accent-vulkan/30"
+                      >
+                        Zendevve
+                      </button>
+                      . All rights reserved.
                     </p>
                     <a
                       href="https://guinto2.gumroad.com/l/dxvkstudio"
