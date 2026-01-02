@@ -1381,18 +1381,31 @@ function SettingsView({ onClearGames }: { onClearGames: () => void }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => window.open('https://github.com/sponsors/Zendevve', '_blank')}
-                  className="btn-primary flex items-center justify-center gap-2 py-3"
+                  className="btn-secondary flex items-center gap-2"
+                  title="Support development"
                 >
                   <Heart className="w-4 h-4" />
-                  GitHub Sponsors
+                  Sponsor
                 </button>
-                <button
-                  onClick={() => window.open('https://ko-fi.com', '_blank')}
+                <a
+                  href="https://guinto2.gumroad.com/l/dxvkstudio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary flex items-center gap-2"
+                  title="Purchase official build"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Official Store
+                </a>
+                <a
+                  href="https://guinto2.gumroad.com/l/dxvkstudio"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="btn-secondary flex items-center justify-center gap-2 py-3"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  Donate via Ko-fi
-                </button>
+                  Official Store
+                </a>
               </div>
 
               <div className="mt-4 text-center">
