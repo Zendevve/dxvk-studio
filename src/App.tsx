@@ -23,7 +23,6 @@ import {
 import type { Game, DxvkFork } from './shared/types'
 
 import {
-  AttributionModal,
   ContextMenu,
   ConfigEditorModal,
   Vkd3dConfigModal,
@@ -103,21 +102,6 @@ function App() {
 
   // Command Palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false)
-
-  // Attribution modal state - show once per day
-  const [showAttribution, setShowAttribution] = useState(() => {
-    const lastShown = localStorage.getItem('dxvk-studio-attribution-shown')
-    if (!lastShown) return true
-    const lastDate = new Date(lastShown)
-    const today = new Date()
-    return lastDate.toDateString() !== today.toDateString()
-  })
-
-  // Mark attribution as shown for today
-  const hideAttribution = () => {
-    localStorage.setItem('dxvk-studio-attribution-shown', new Date().toISOString())
-    setShowAttribution(false)
-  }
 
   // Global keyboard shortcut for Command Palette (Ctrl+K)
   useEffect(() => {
@@ -532,11 +516,6 @@ function App() {
         onScanGames={handleScan}
         onAddGame={handleAddGame}
       />
-
-      {/* Attribution Modal */}
-      {showAttribution && (
-        <AttributionModal onClose={hideAttribution} />
-      )}
     </div>
   )
 }
